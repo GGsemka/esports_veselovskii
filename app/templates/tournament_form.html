@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf, title_head with context %}
+{% set t = tournament or {} %}
+{% set data = request.form if request.method == 'POST' else t %}
+{% block title %}{{ 'Редактирование турнира' if t.id else 'Новый турнир' }}{% endblock %}
+{% block content %}
+<div class="wrap page">
+  <div class="breadcrumb"><a href="/organizer/tournaments">Управление</a>{% if t.id %}<span>›</span><a href="/tournaments/{{ t.id }}">{{ t.title }}</a>{% endif %}</div>
+  {{ title_head('Редактирование турнира' if t.id else 'Новый турнир', 'Укажите дисциплину, правила и даты соревнования.') }}
+  <form class="panel fields form-card" method="post" enctype="multipart/form-data" data-date-range data-game-format>
+    {{ csrf() }}
+    <label class="field"><span>Название турнира</span><input name="title" value="{{ data.title|default('') }}" required minlength="5" maxlength="120"></label>
+    <label class="field"><span>Описание</span><textarea name="description" required minlength="30" maxlength="2000" rows="5">{{ data.description|default('') }}</textarea></label>
+    <label class="field"><span>Дисциплина</span><select name="game_id" required><option value="">Выберите игру</option>{% for game in games %}<option value="{{ game.id }}" data-format="{{ game.format }}" {% if game.id|string == data.game_id|default('')|string %}selected{% endif %}>{{ game.name }}</option>{% endfor %}</select></label>
+    <div class="cols">
+      <label class="field"><span>Формат сетки</span><select name="format" required><option value="single_elimination" {% if data.format == 'single_elimination' %}selected{% endif %}>На выбывание</option><option value="round_robin" {% if data.format == 'round_robin' %}selected{% endif %}>Круговой</option></select></label>
+      <label class="field"><span>Тип участия</span><select name="registration_type" required><option value="team" {% if data.registration_type == 'team' %}selected{% endif %}>Командный</option><option value="solo" {% if data.registration_type == 'solo' %}selected{% endif %}>Одиночный</option></select><small>Вид участия зависит от дисциплины.</small></label>
+    </div>
+    <label class="field"><span>Лимит участников</span><input type="number" min="2" max="64" name="max_participants" value="{{ data.max_participants|default(8) }}" required></label>
+    <div class="cols">
+      <label class="field"><span>Начало</span><input type="date" name="start_date" value="{{ (data.start_date|default('', true)|string)[:10] }}" required></label>
+      <label class="field"><span>Окончание</span><input type="date" name="end_date" value="{{ (data.end_date|default('', true)|string)[:10] }}" required></label>
+    </div>
+    <label class="field"><span>Баннер</span><input type="file" name="banner" accept=".jpg,.jpeg,.png,.webp" data-image-file><small>JPG, PNG или WebP, до 1 МБ. Для публикации нужен баннер.</small></label>
+    {% if t.banner %}<img class="banner-preview" src="{{ media_url(t.banner) }}" alt="Текущий баннер">{% endif %}
+    <div class="cluster"><button class="button" type="submit">{{ 'Сохранить' if t.id else 'Создать черновик' }}</button><a class="button button-ghost" href="{{ '/tournaments/' ~ t.id if t.id else '/organizer/tournaments' }}">Отмена</a></div>
+  </form>
+</div>
+{% endblock %}

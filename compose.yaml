@@ -1,0 +1,37 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: arena
+      MYSQL_USER: arena
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+    volumes:
+      - arena-db:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysql -h 127.0.0.1 -u arena arena -e 'SELECT 1 FROM games LIMIT 1'"]
+      interval: 5s
+      timeout: 4s
+      retries: 40
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: arena
+      DB_USER: arena
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      HTTPS_ONLY: ${HTTPS_ONLY:-0}
+    volumes:
+      - arena-uploads:/srv/arena/instance/uploads
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+volumes:
+  arena-db:
+  arena-uploads:

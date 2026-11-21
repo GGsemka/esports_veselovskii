@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="350" viewBox="0 0 900 350">
+<defs><pattern id="grass" width="70" height="1" patternUnits="userSpaceOnUse"><path d="M0 0h35v1H0z" fill="#b4ec67" opacity=".12"/></pattern></defs>
+<path fill="#293d23" d="M0 0h900v350H0z"/>
+<g transform="rotate(-15 671 170)">
+  <path fill="#66a33e" d="M464-46h466v437H464z"/><path fill="url(#grass)" d="M464-46h466v437H464z"/>
+  <g fill="none" stroke="#dcffc9" stroke-width="2"><path d="M494-15h375v374H494zM681-15v374M494 62h64v221h-64M869 62h-64v221h64"/><circle cx="681" cy="170" r="59"/></g>
+</g>
+<text x="60" y="225" fill="#d6ff9b" font-family="Arial Black,sans-serif" font-size="147" font-weight="900" font-style="italic" letter-spacing="-12">FC</text>
+<path fill="#d6ff9b" d="M70 261h236l-9 6H61z"/>
+</svg>

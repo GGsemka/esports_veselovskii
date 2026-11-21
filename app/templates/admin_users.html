@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf, title_head, role_label, date, post_button, empty with context %}
+{% block title %}Пользователи{% endblock %}
+{% macro user_fields(user=none) %}
+<label class="field"><span>Никнейм</span><input name="nickname" required autocomplete="off" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" value="{{ user.nickname if user else '' }}"></label>
+<label class="field"><span>Электронная почта</span><input name="email" type="email" required maxlength="120" value="{{ user.email if user else '' }}"></label>
+<label class="field"><span>{{ 'Новый пароль' if user else 'Пароль' }}</span><input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="1024" {% if not user %}required{% endif %}></label>
+<label class="field"><span>Роль</span><select name="role" required>
+  {% for role in roles %}<option value="{{ role }}"{% if user and user.role == role %} selected{% endif %}>{{ role_label(role) }}</option>{% endfor %}
+</select></label>
+{% endmacro %}
+{% block content %}
+<div class="wrap page">
+  {{ title_head('Пользователи', 'Управление аккаунтами и ролями на платформе.') }}
+  <details class="panel admin-create">
+    <summary>Создать пользователя</summary>
+    <form class="fields" method="post" action="{{ url_for('admin.create_user') }}">
+      {{ csrf() }}<div class="cols">{{ user_fields() }}</div>
+      <div><button class="button" type="submit">Создать пользователя</button></div>
+    </form>
+  </details>
+  {% if users %}
+  <div class="table-scroll section"><table><thead><tr><th scope="col">Никнейм</th><th scope="col">Электронная почта</th><th scope="col">Роль</th><th scope="col">Дата создания</th><th scope="col">Действия</th></tr></thead>
+  <tbody>{% for user in users %}<tr>
+    <td><strong>{{ user.nickname }}</strong></td><td>{{ user.email }}</td><td><span class="badge">{{ role_label(user.role) }}</span></td><td>{{ date(user.created_at) }}</td>
+    <td><details class="admin-edit">
+      <summary>Изменить</summary>
+      <form class="fields" action="{{ url_for('admin.update_user', user_id=user.id) }}" method="post">
+        {{ csrf() }}{{ user_fields(user) }}<button class="button" type="submit">Сохранить</button>
+      </form>
+      {% if g.user.id != user.id %}{{ post_button(url_for('admin.delete_user', user_id=user.id), 'Удалить аккаунт', 'button-danger', 'Удалить аккаунт ' ~ user.nickname ~ '?') }}{% endif %}
+    </details></td>
+  </tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="section">{{ empty('Пользователей пока нет') }}</div>{% endif %}
+</div>
+{% endblock %}

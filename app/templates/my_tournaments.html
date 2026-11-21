@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_ui.html" import title_head, status, empty with context %}
+{% block title %}Мои турниры{% endblock %}
+{% block content %}
+<div class="wrap page">
+  {% call title_head('Мои турниры', 'Личные заявки и заявки вашей команды.') %}<a class="button button-secondary" href="/">Найти турнир</a>{% endcall %}
+  {% if tournaments %}
+  <div class="cards">{% for t in tournaments %}
+    <article class="card">
+      <span class="game-label">{{ t.game_name }}</span>
+      <h3><a href="/tournaments/{{ t.id }}">{{ t.title }}</a></h3>
+      <div class="stack quiet"><div class="cluster">Турнир {{ status(t.status) }}</div><div class="cluster">Заявка {{ status(t.registration_status) }}</div></div>
+      {% if t.rejection_reason %}<p class="quiet">{{ t.rejection_reason }}</p>{% endif %}
+      <div class="card-foot"><a class="text-link quiet" href="/tournaments/{{ t.id }}">Подробнее</a>
+        {% if t.thread_id %}<a class="button button-secondary" href="{{ url_for('chat.thread', thread_id=t.thread_id) }}">Чат</a>{% endif %}
+      </div>
+    </article>
+  {% endfor %}</div>
+  {% else %}{{ empty('Вы пока не участвуете в турнирах', 'Подайте заявку из карточки соревнования.') }}{% endif %}
+</div>
+{% endblock %}

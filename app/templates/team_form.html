@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf, title_head with context %}
+{% block title %}Новая команда{% endblock %}
+{% block content %}
+<div class="wrap page">
+  {{ title_head('Новая команда', 'После создания вы станете капитаном и сможете добавлять игроков в состав.') }}
+  <form class="panel fields form-card" method="post" enctype="multipart/form-data">
+    {{ csrf() }}
+    <label class="field"><span>Название команды</span><input name="name" value="{{ form.name|default('') }}" required maxlength="120"></label>
+    <label class="field"><span>Дисциплина</span><select name="game_id" required><option value="">Выберите игру</option>
+      {% for game in games %}<option value="{{ game.id }}"{% if form.game_id|default('')|string == game.id|string %} selected{% endif %}>{{ game.name }}{% if game.team_size_min is defined %} ({{ game.team_size_min }}–{{ game.team_size_max }} игроков){% endif %}</option>{% endfor %}
+    </select></label>
+    <label class="field"><span>Логотип</span><input type="file" name="logo" accept=".jpg,.jpeg,.png,.webp" data-image-file><small>JPG, PNG или WebP, до 1 МБ.</small></label>
+    <div class="cluster"><button class="button" type="submit">Создать команду</button><a class="button button-ghost" href="/team">Отмена</a></div>
+  </form>
+</div>
+{% endblock %}
