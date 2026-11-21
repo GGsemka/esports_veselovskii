@@ -1,0 +1,54 @@
+name: arena
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    container: node:22-bookworm
+    services:
+      db:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: ephemeral-ci-only
+          MYSQL_ROOT_HOST: "%"
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=40
+    env:
+      TEST_DB_HOST: db
+      TEST_DB_USER: root
+      TEST_DB_PASSWORD: ephemeral-ci-only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest --cov=app --cov-report=term-missing --cov-fail-under=60
+      - name: Verify production configuration
+        run: |
+          python -c "from app import create_app; import os,secrets; os.environ['SECRET_KEY']=secrets.token_hex(32); assert not create_app('prod').debug"
+  image:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t arena-ci .
+      - name: Publish release image
+        if: ${{ github.event_name == 'push' && vars.PUBLISH_IMAGE == 'true' }}
+        env:
+          REGISTRY_HOST: ${{ vars.REGISTRY_HOST }}
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          REPO: ${{ github.repository }}
+          REVISION: ${{ github.sha }}
+        run: |
+          echo "$REGISTRY_TOKEN" | docker login "$REGISTRY_HOST" --username "$REGISTRY_USER" --password-stdin
+          image="$REGISTRY_HOST/$(echo "$REPO" | tr '[:upper:]' '[:lower:]'):$REVISION"
+          docker tag arena-ci "$image"
+          docker push "$image"
+          docker logout "$REGISTRY_HOST"

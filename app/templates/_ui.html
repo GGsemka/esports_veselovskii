@@ -1,0 +1,45 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro icon(name) %}
+<svg class="icon-{{ name }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{% if name == 'brand' %}<path d="M3.3 18.2 10.5 5.8h3l7.2 12.4M6.6 13.6h10.8M10 18.2l2-3.5 2 3.5" stroke-width="2.2"/>
+{% elif name == 'sun' %}<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/>
+{% elif name == 'moon' %}<path d="M21 13.3a9 9 0 1 1-10.3-10A7.5 7.5 0 0 0 21 13.3Z"/>
+{% elif name == 'arrow' %}<path d="M4 12h15m-6-6 6 6-6 6"/>
+{% elif name == 'search' %}<circle cx="10.7" cy="10.7" r="5.7"/><path d="m15 15 4.6 4.6"/>
+{% elif name == 'calendar' %}<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M8 4v4m8-4v4"/>
+{% elif name == 'logo' %}<path d="M3.8 12h6.6l4-6.4h5.8m-9.8 6.4 4 6.4h5.8m0-12.8H17m3.2 12.8H17"/><circle cx="3.8" cy="12" r="1.7" fill="currentColor"/>
+{% endif %}
+</svg>
+{% endmacro %}
+
+{% macro status(value) %}
+{%- set labels = {
+  'draft':'Черновик', 'published':'Идёт регистрация', 'in_progress':'В игре', 'completed':'Завершён', 'cancelled':'Отменён',
+  'pending':'На рассмотрении', 'approved':'Одобрена', 'rejected':'Отклонена', 'withdrawn':'Отозвана',
+  'scheduled':'Запланирован', 'played':'Сыгран', 'walkover':'Техническая победа'
+} -%}
+<span class="badge {{ value }}">{{ labels.get(value, value) }}</span>
+{% endmacro %}
+
+{% macro format_label(value) %}{{ {'single_elimination':'На выбывание', 'round_robin':'Круговой', 'solo':'Одиночный', 'team':'Командный'}.get(value, value) }}{% endmacro %}
+
+{% macro role_label(value) %}{{ {'player':'Игрок', 'captain':'Капитан', 'organizer':'Организатор', 'admin':'Администратор'}.get(value, value) }}{% endmacro %}
+
+{% macro date(value) %}{% if value %}{{ value.strftime('%d.%m.%Y') if value.strftime is defined else value|string|truncate(10, true, '') }}{% else %}—{% endif %}{% endmacro %}
+
+{% macro datetime(value) %}{% if value %}{{ value.strftime('%d.%m.%Y в %H:%M') if value.strftime is defined else value }}{% else %}—{% endif %}{% endmacro %}
+
+{% macro empty(title, note='') %}
+<div class="empty"><h3>{{ title }}</h3>{% if note %}<p>{{ note }}</p>{% endif %}</div>
+{% endmacro %}
+
+{% macro post_button(url, label, style='', confirm='') %}
+<form action="{{ url }}" method="post"{% if confirm %} data-confirm="{{ confirm }}"{% endif %}>
+  {{ csrf() }}<button class="button {{ style }}" type="submit">{{ label }}</button>
+</form>
+{% endmacro %}
+
+{% macro title_head(label, subtitle='') %}
+<div class="page-head"><div><h1>{{ label }}</h1>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div>{{ caller() if caller is defined }}</div>
+{% endmacro %}

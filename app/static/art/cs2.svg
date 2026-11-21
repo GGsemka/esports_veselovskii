@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="350" viewBox="0 0 900 350">
+<defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#111519"/><stop offset="1" stop-color="#423423"/></linearGradient>
+  <pattern id="stripes" width="17" height="17" patternTransform="rotate(35)" patternUnits="userSpaceOnUse"><path d="M0 0v17" stroke="#ebc978" stroke-width="3"/></pattern>
+</defs>
+<path fill="url(#bg)" d="M0 0h900v350H0z"/>
+<path fill="#e4b161" d="M610 0h290v350H509z"/>
+<path fill="url(#stripes)" opacity=".3" d="M440 0h130L465 350H335z"/>
+<path fill="#a86b38" d="M835 0h65v350H730z"/><path fill="#fff0ba" d="M855 0h8L759 350h-8z"/>
+<path fill="none" stroke="#33261d" stroke-width="3" d="M676 83h102v102H676zM727 67v134m-67-67h134"/>
+<circle cx="727" cy="134" r="25" fill="none" stroke="#33261d" stroke-width="3"/>
+<text x="76" y="230" fill="#fff2c7" font-family="Impact,Arial Black,sans-serif" font-weight="900" font-size="151" letter-spacing="-9">CS2</text>
+<path d="M76 264h264" stroke="#e4b161" stroke-width="4"/>
+</svg>

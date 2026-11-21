@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf, title_head with context %}
+{% block title %}Профиль{% endblock %}
+{% block content %}
+<div class="wrap page">
+  {{ title_head('Профиль игрока') }}
+  <form method="post" class="panel fields form-card" data-password-match>
+    {{ csrf() }}
+    <label class="field"><span>Никнейм</span><input name="nickname" value="{{ form.nickname|default(g.user.nickname) }}" autocomplete="username" minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" required></label>
+    <label class="field"><span>Электронная почта</span><input name="email" type="email" value="{{ form.email|default(g.user.email) }}" autocomplete="email" maxlength="120" required></label>
+    <label class="field"><span>Новый пароль</span><input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="1024"><small>Оставьте поле пустым, если пароль менять не нужно.</small></label>
+    <label class="field"><span>Подтвердите новый пароль</span><input name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="1024"></label>
+    <div><button class="button" type="submit">Сохранить изменения</button></div>
+  </form>
+</div>
+{% endblock %}

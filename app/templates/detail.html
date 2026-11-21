@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "_ui.html" import icon, status, format_label, date, datetime, empty, post_button, csrf with context %}
+{% set t = tournament %}
+{% block title %}{{ t.title }}{% endblock %}
+{% block content %}
+<div class="wrap page">
+  <div class="breadcrumb"><a href="{{ '/history' if t.status == 'completed' else '/' }}">{{ 'История' if t.status == 'completed' else 'Турниры' }}</a><span>›</span><span>{{ t.title }}</span></div>
+  <section class="detail-hero">
+    <div class="detail-heading">
+      <div class="cluster"><span class="game-label">{{ t.game_name }}</span>{{ status(t.status) }}</div>
+      <h1>{{ t.title }}</h1>
+      <p class="muted">{{ date(t.start_date) }} – {{ date(t.end_date) }}</p>
+    </div>
+    <div class="tournament-cover cover-{{ t.game_id|int % 4 }}" aria-hidden="true">{% if t.banner %}<img src="{{ media_url(t.banner) }}" alt="">{% else %}{{ icon('logo') }}{% endif %}</div>
+  </section>
+  {% if is_owner %}
+  <section class="panel section stack" aria-labelledby="manage-heading">
+    <h3 id="manage-heading">Управление турниром</h3>
+    <div class="cluster">
+      {% if t.status == 'draft' %}
+        <a class="button button-secondary" href="/tournaments/{{ t.id }}/edit">Редактировать</a>
+        {% if t.banner %}{{ post_button('/tournaments/' ~ t.id ~ '/publish', 'Опубликовать') }}
+        {% else %}<span class="muted quiet">Загрузите баннер для публикации.</span>{% endif %}
+      {% endif %}
+      {% if t.status in ['published', 'in_progress'] %}<a class="button button-secondary" href="/tournaments/{{ t.id }}/registrations">Заявки</a>{% endif %}
+      {% if t.status != 'cancelled' %}<a class="button button-secondary" href="/tournaments/{{ t.id }}/chats">Чаты</a>{% endif %}
+      {% if t.status == 'published' and not has_registrations %}{{ post_button('/tournaments/' ~ t.id ~ '/unpublish', 'Отменить публикацию', 'button-secondary') }}{% endif %}
+      {% if t.status in ['draft', 'published'] and t.approved_count|default(0) >= 2 %}
+        {{ post_button(url_for('competition.generate', tournament_id=t.id), 'Сгенерировать сетку', '', 'Создать сетку и начать турнир?') }}
+      {% endif %}
+      {% if t.status == 'in_progress' and can_finish|default(false) %}{{ post_button(url_for('competition.finish', tournament_id=t.id), 'Завершить турнир') }}{% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="detail-grid">
+    <section class="panel stack" aria-labelledby="overview-heading">
+      <h2 id="overview-heading">О турнире</h2><p class="detail-description">{{ t.description }}</p>
+      {% if is_owner and t.status in ['draft','published'] and t.approved_count|default(0) < 2 %}<p class="quiet muted">Для старта нужно одобрить минимум две заявки.</p>{% endif %}
+    </section>
+    <aside class="detail-aside" aria-label="Параметры и участие">
+      <dl class="stat-grid">
+        <div class="stat"><dt>Формат</dt><dd>{{ format_label(t.format) }}</dd></div>
+        <div class="stat"><dt>Тип участия</dt><dd>{{ format_label(t.registration_type) }}</dd></div>
+        <div class="stat"><dt>Организатор</dt><dd>{{ t.organizer_name }}</dd></div>
+        <div class="stat"><dt>Места заняты</dt><dd>{{ t.approved_count|default(0) }} / {{ t.max_participants }}</dd></div>
+      </dl>
+      {% if registration or can_apply or thread_id or (not g.user and t.status == 'published') %}
+      <div class="panel stack">
+        <h3>Участие</h3>
+        {% if registration %}
+          <div>{{ status(registration.status) }}</div>
+          {% if registration.rejection_reason %}<p class="quiet muted">{{ registration.rejection_reason }}</p>{% endif %}
+          {% if registration.can_withdraw and t.status == 'published' %}
+            {{ post_button('/registrations/' ~ registration.id ~ '/withdraw', 'Отозвать заявку', 'button-secondary') }}
+          {% endif %}
+        {% endif %}
+        <div class="cluster">
+          {% if can_apply %}{{ post_button('/tournaments/' ~ t.id ~ '/apply', 'Подать заявку') }}{% endif %}
+          {% if thread_id %}<a class="button button-secondary" href="/chats/{{ thread_id }}">Чат с организатором</a>{% endif %}
+          {% if not g.user and t.status == 'published' %}<a class="button button-secondary" href="/login">Войти для участия</a>{% endif %}
+        </div>
+      </div>
+      {% elif t.status == 'published' and g.user and g.user.role == 'player' and t.registration_type == 'team' %}
+      <div class="panel stack"><h3>Участие</h3><p class="muted quiet">Заявку подаёт капитан команды по этой дисциплине.</p><a class="text-link quiet" href="/team">Перейти к команде</a></div>
+      {% endif %}
+    </aside>
+  </div>
+
+  <section class="section" aria-labelledby="bracket-heading">
+    <div class="section-head"><h2 id="bracket-heading">{{ 'Матчи' if t.format == 'round_robin' else 'Турнирная сетка' }}</h2></div>
+    {% if rounds %}
+    <div class="bracket" tabindex="0" aria-label="Матчи по раундам, прокручиваемая область">
+      <div class="bracket-tree"{% if t.format == 'single_elimination' %} data-bracket-tree{% endif %}>
+        {% if t.format == 'single_elimination' %}<svg class="bracket-wires" aria-hidden="true"></svg>{% endif %}
+        {% for round in rounds %}
+        <div class="bracket-round">
+          <h3 class="round-title">{{ 'Финал' if loop.last and t.format == 'single_elimination' else 'Раунд ' ~ loop.index }}</h3>
+          <div class="round-matches">
+            {% for m in round %}
+            <article class="match-tile" id="match-{{ m.id }}"{% if m.next_match_id %} data-next-match="{{ m.next_match_id }}"{% endif %}>
+              <div class="match-meta"><span>Матч {{ m.match_number }}</span>{{ status(m.status) }}</div>
+              <div class="match-side{% if m.registration1_id and m.winner_registration_id == m.registration1_id %} winner{% endif %}"><span>{{ m.name1 or ('Без соперника' if m.status == 'walkover' else 'Ожидается') }}</span><strong class="mono">{{ m.score1 if m.score1 is not none else '—' }}</strong></div>
+              <div class="match-side{% if m.registration2_id and m.winner_registration_id == m.registration2_id %} winner{% endif %}"><span>{{ m.name2 or ('Без соперника' if m.status == 'walkover' else 'Ожидается') }}</span><strong class="mono">{{ m.score2 if m.score2 is not none else '—' }}</strong></div>
+              {% if m.scheduled_at %}<div class="match-meta"><time>{{ datetime(m.scheduled_at) }}</time></div>{% endif %}
+              {% if is_owner and t.status == 'in_progress' and m.status == 'scheduled' and m.registration1_id and m.registration2_id %}
+              <details class="match-editor"><summary>Внести результат</summary>
+                <form class="fields" action="{{ url_for('competition.result', match_id=m.id) }}" method="post" {% if t.format == 'single_elimination' %}data-no-tie{% endif %}>
+                  {{ csrf() }}
+                  <div class="score-inputs">
+                    <label class="field"><span>{{ m.name1 }}</span><input type="number" name="score1" min="0" max="2147483647" step="1" required></label>
+                    <label class="field"><span>{{ m.name2 }}</span><input type="number" name="score2" min="0" max="2147483647" step="1" required></label>
+                  </div>
+                  <button class="button" type="submit">Сохранить счёт</button>
+                </form>
+                <details class="result-switch"><summary>Техническая победа</summary>
+                  <form class="fields" action="{{ url_for('competition.result', match_id=m.id) }}" method="post">
+                    {{ csrf() }}<input type="hidden" name="mode" value="walkover">
+                    <label class="field"><span>Победитель</span><select name="winner_registration_id" required><option value="">Выберите победителя</option><option value="{{ m.registration1_id }}">{{ m.name1 }}</option><option value="{{ m.registration2_id }}">{{ m.name2 }}</option></select></label>
+                    <button class="button button-secondary" type="submit">Зафиксировать</button>
+                  </form>
+                </details>
+              </details>
+              {% endif %}
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% elif t.status == 'published' %}{{ empty('Турнир скоро начнётся', 'Матчи появятся после завершения регистрации.') }}
+    {% else %}{{ empty('Матчей пока нет') }}{% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="participants-heading">
+    <div class="section-head"><h2 id="participants-heading">{{ 'Итоговые места' if standings and t.status == 'completed' else 'Турнирная таблица' if standings else 'Участники' }}</h2></div>
+    {% if standings %}
+    <div class="table-scroll"><table><thead><tr><th scope="col">Место</th><th scope="col">Участник</th>{% if t.format == 'round_robin' %}<th scope="col">Матчи</th><th scope="col">Победы</th><th scope="col">Ничьи</th><th scope="col">Поражения</th>{% endif %}</tr></thead>
+    <tbody>{% for entry in standings %}<tr><td class="mono">{{ entry.rank }}</td><td>{{ entry.name }}</td>{% if t.format == 'round_robin' %}<td>{{ entry.played }}</td><td>{{ entry.wins }}</td><td>{{ entry.draws }}</td><td>{{ entry.losses }}</td>{% endif %}</tr>{% endfor %}</tbody></table></div>
+    {% elif participants %}
+      <div class="panel"><ul class="participants">{% for participant in participants %}<li>{{ participant.name }}</li>{% endfor %}</ul></div>
+    {% else %}{{ empty('Участников пока нет') }}{% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="350" viewBox="0 0 900 350">
+<defs><pattern id="grain" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1" fill="#d9bfff" opacity=".38"/></pattern></defs>
+<path fill="#201b33" d="M0 0h900v350H0z"/><path fill="url(#grain)" d="M0 0h900v350H0z"/>
+<path fill="#8c6dbc" d="m671 0 229 0v350H557z"/><path fill="#bc9cef" d="m818 0 82 0v350H708z"/>
+<g fill="none" stroke="#2f254c" stroke-width="5"><path d="M721 71h-33v33m159-33h33v33M721 252h-33v-33m159 33h33v-33"/><circle cx="784" cy="162" r="55"/><path d="M784 118v87m-44-43h88"/></g>
+<text x="58" y="187" fill="#f3e7ff" font-family="Arial Black,sans-serif" font-size="67" font-weight="900" letter-spacing="-5">STANDOFF 2</text>
+<path fill="#bc9cef" d="M64 223h252l-11 9H64z"/>
+</svg>

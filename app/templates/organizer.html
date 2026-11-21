@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_ui.html" import title_head, status, date, empty with context %}
+{% block title %}Управление турнирами{% endblock %}
+{% block content %}
+<div class="wrap page">
+  {% call title_head('Управление турнирами') %}<a class="button" href="/tournaments/new">Создать турнир</a>{% endcall %}
+  {% if tournaments %}
+  <div class="table-scroll"><table><thead><tr><th scope="col">Турнир</th><th scope="col">Дисциплина</th><th scope="col">Начало</th><th scope="col">Статус</th><th scope="col">Действия</th></tr></thead>
+  <tbody>{% for t in tournaments %}
+    <tr><td><a class="text-link" href="/tournaments/{{ t.id }}">{{ t.title }}</a></td><td>{{ t.game_name }}</td><td>{{ date(t.start_date) }}</td><td>{{ status(t.status) }}</td><td><div class="cluster">
+      {% if t.status == 'draft' %}<a class="button button-secondary" href="/tournaments/{{ t.id }}/edit">Редактировать</a>{% endif %}
+      {% if t.status in ['published', 'in_progress'] %}<a class="button button-secondary" href="/tournaments/{{ t.id }}/registrations">Заявки</a>{% endif %}
+      <a class="button button-secondary" href="/tournaments/{{ t.id }}/chats">Чаты</a>
+    </div></td></tr>
+  {% endfor %}</tbody></table></div>
+  {% else %}{{ empty('У вас пока нет турниров', 'Создайте черновик, чтобы подготовить первое соревнование.') }}{% endif %}
+</div>
+{% endblock %}

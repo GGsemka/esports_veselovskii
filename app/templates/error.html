@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Ошибка {{ code }}{% endblock %}
+{% block content %}
+<div class="wrap page">
+  <div class="panel stack form-card">
+    <span class="mono accent">{{ code }}</span>
+    <h1>{{ {400:'Неверный запрос', 403:'Доступ ограничен', 404:'Страница не найдена', 413:'Файл слишком большой', 500:'Внутренняя ошибка'}.get(code, 'Не удалось открыть страницу') }}</h1>
+    {% if message %}<p class="muted">{{ message }}</p>{% endif %}
+    <div><a class="button" href="/">На главную</a></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="350" viewBox="0 0 900 350">
+<defs><pattern id="bg" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M0 1h60M1 0v60" fill="none" stroke="#e5faff" opacity=".18"/></pattern></defs>
+<path fill="#101f2c" d="M0 0h900v350H0z"/><path fill="url(#bg)" d="M0 0h900v350H0z"/>
+<path fill="#ff686d" d="M628 0h272v186L790 350H446z"/>
+<path fill="#bf414b" d="M900 40v310H693z"/>
+<path fill="none" stroke="#ffc1b8" stroke-width="2" d="M698 22 581 262h133l98-186zM725 0 613 234h83"/>
+<path fill="#101f2c" d="M29 113h625l-50 122H29z"/>
+<text x="61" y="202" fill="#e8f4fa" font-family="Arial Black,sans-serif" font-weight="900" font-size="93" letter-spacing="-6">VALORANT</text>
+<path d="M68 230h211" stroke="#ff686d" stroke-width="5"/>
+</svg>

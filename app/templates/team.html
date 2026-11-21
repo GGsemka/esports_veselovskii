@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_ui.html" import csrf, title_head, icon, role_label, post_button with context %}
+{% block title %}Команда{% endblock %}
+{% block content %}
+<div class="wrap page">
+  {% if team %}
+  {% call title_head(team.name, team.game_name) %}
+    <div class="avatar">{% if team.logo %}<img class="avatar" src="{{ media_url(team.logo) }}" alt="Логотип команды">{% else %}{{ icon('logo') }}{% endif %}</div>
+  {% endcall %}
+  <div class="detail-grid">
+    <section aria-labelledby="roster" class="stack">
+      <h2 id="roster">Состав команды</h2>
+      <div class="table-scroll"><table><thead><tr><th scope="col">Игрок</th><th scope="col">Роль</th>{% if g.user.id == team.captain_id %}<th scope="col">Действия</th>{% endif %}</tr></thead>
+      <tbody>{% for member in members %}<tr><td>{{ member.nickname }}</td><td>{{ role_label(member.role) }}</td>
+        {% if g.user.id == team.captain_id %}<td>{% if member.role != 'captain' %}{{ post_button(url_for('teams.remove_member', team_id=team.id, user_id=member.id), 'Исключить', 'button-danger', 'Исключить игрока из команды?') }}{% else %}—{% endif %}</td>{% endif %}
+      </tr>{% endfor %}</tbody></table></div>
+    </section>
+    <aside class="panel stack">
+      <h3>Размер состава</h3><p class="muted quiet">{{ members|length }} из {{ team.team_size_max }} игроков. Для участия нужно минимум {{ team.team_size_min }}.</p>
+      {% if g.user.id == team.captain_id and members|length < team.team_size_max %}
+      <form action="{{ url_for('teams.add_member', team_id=team.id) }}" method="post" class="fields">
+        {{ csrf() }}<label class="field"><span>Никнейм игрока</span><input name="nickname" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" placeholder="Player_01"></label>
+        <button class="button" type="submit">Добавить в состав</button>
+      </form>
+      {% endif %}
+    </aside>
+  </div>
+  {% else %}
+    {% call title_head('Моя команда') %}<a class="button" href="{{ url_for('teams.create') }}">Создать команду</a>{% endcall %}
+    <div class="empty"><h3>У вас пока нет команды</h3><p>Создайте свою команду или попросите капитана добавить вас по никнейму {{ g.user.nickname }}.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

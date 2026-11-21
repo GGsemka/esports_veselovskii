@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_ui.html" import title_head, datetime, empty, icon with context %}
+{% block title %}Чаты · {{ tournament.title }}{% endblock %}
+{% block content %}
+<div class="wrap page">
+  <div class="breadcrumb"><a href="/organizer/tournaments">Управление</a><span>›</span><a href="/tournaments/{{ tournament.id }}">{{ tournament.title }}</a></div>
+  {{ title_head('Чаты с участниками', tournament.title) }}
+  {% if threads %}
+  <div class="panel conversation-list">
+    {% for thread in threads %}
+    <a class="conversation" href="{{ url_for('chat.thread', thread_id=thread.id) }}">
+      <div><h3>{{ thread.participant_name }}</h3><p class="muted quiet">{{ thread.last_text|truncate(100) if thread.last_text else 'Сообщений пока нет' }}</p></div>
+      <div class="cluster"><time class="muted quiet">{{ datetime(thread.last_at) }}</time>{{ icon('arrow') }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}{{ empty('Чатов пока нет', 'Переписка станет доступна после подачи заявок.') }}{% endif %}
+</div>
+{% endblock %}

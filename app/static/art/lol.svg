@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="350" viewBox="0 0 900 350">
+<defs>
+  <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#152b32"/><stop offset="1" stop-color="#285254"/></linearGradient>
+  <pattern id="grid" width="46" height="46" patternUnits="userSpaceOnUse" patternTransform="rotate(25)"><path d="M0 1h46M1 0v46" stroke="#d6bc77" opacity=".14"/></pattern>
+</defs>
+<path fill="url(#bg)" d="M0 0h900v350H0z"/><path fill="url(#grid)" d="M0 0h900v350H0z"/>
+<g fill="none" stroke="#acaa71"><path d="M602 20 845 104l-37 177-233 51-120-154z" opacity=".65"/><circle cx="652" cy="174" r="119"/><circle cx="652" cy="174" r="146" opacity=".38"/><path d="m652 59 71 117-71 114-72-114z"/></g>
+<path d="m652 119 36 56-36 56-36-56z" fill="#f0cd85"/>
+<text x="66" y="170" fill="#f9e0a9" font-family="Georgia,serif" font-size="58" font-weight="bold" letter-spacing="-1">LEAGUE OF</text>
+<text x="68" y="227" fill="#f9e0a9" font-family="Georgia,serif" font-size="58" font-weight="bold" letter-spacing="-1">LEGENDS</text>
+</svg>

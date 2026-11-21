@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_ui.html" import title_head, datetime, csrf with context %}
+{% block title %}Чат · {{ thread.title }}{% endblock %}
+{% block content %}
+<div class="wrap page chat-page">
+  <div class="breadcrumb"><a href="/tournaments/{{ thread.tournament_id }}">{{ thread.title }}</a>{% if g.user.id == thread.organizer_id %}<span>›</span><a href="/tournaments/{{ thread.tournament_id }}/chats">Чаты</a>{% endif %}</div>
+  {{ title_head(thread.participant_name if g.user.id == thread.organizer_id else 'Чат с организатором', thread.title) }}
+  <div class="panel stack">
+    <div class="two-actions">
+      <span class="muted quiet"><i class="signal-dot" aria-hidden="true"></i> Переписка по турниру</span>
+      <a class="text-link quiet" href="{{ url_for('chat.thread', thread_id=thread.id) }}">Обновить</a>
+    </div>
+    <div class="chat-log" role="log" aria-label="История сообщений" aria-live="polite" aria-relevant="additions"
+      data-chat-feed="{{ url_for('chat.messages', thread_id=thread.id) }}"
+      data-organizer-user="{{ thread.organizer_id }}"
+      data-chat-after="{{ messages[-1].id if messages else 0 }}">
+      {% if not messages %}<p class="muted quiet chat-empty">Сообщений пока нет. Напишите первое.</p>{% endif %}
+      {% for message in messages %}
+      <article class="chat-message {{ 'chat--left' if message.sender_id == thread.organizer_id else 'chat--right' }}">
+        <div class="chat-byline"><strong>{{ message.nickname }}</strong><time>{{ datetime(message.created_at) }}</time></div>
+        <p>{{ message.text }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    <form method="post" class="chat-form">
+      {{ csrf() }}<label class="field"><span>Сообщение</span><textarea name="text" maxlength="2000" rows="3" required placeholder="Напишите сообщение"></textarea></label>
+      <button class="button" type="submit">Отправить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
