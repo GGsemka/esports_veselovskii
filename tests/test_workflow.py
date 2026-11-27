@@ -3,12 +3,14 @@
 import io
 import re
 from html import unescape
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 from PIL import Image
 
 from app import db
+from app.cli import upgrade_schema
 
 
 def create_user(name, role="player"):
@@ -147,7 +149,9 @@ def test_solo_tournament_from_draft_to_public_history(app, client):
         assert len(matches) == 1
         match = matches[0]
         assert {match["registration1_id"], match["registration2_id"]} == {first, second}
-        assert b"Betaplayer" in players["Alphaplayer"].get("/my/matches").data
+        cabinet = players["Alphaplayer"].get("/my/matches").data
+        assert b"Betaplayer" in cabinet
+        assert b"01.04.2030" in cabinet
         assert b"Arena Invitational" in players["Alphaplayer"].get("/my/tournaments").data
         assert b"Arena Invitational" not in players["Gammaplayer"].get("/my/matches").data
 
@@ -280,6 +284,18 @@ def test_team_registration_checks_roster_and_plays_round_robin(app):
         assert {row["team_id"] for row in teams} == set(team_ids)
         assert b"Arena Invitational" in north_partner.get("/history").data
 
+        db.execute("UPDATE games SET format='solo',team_size_min=1,team_size_max=1 WHERE id=%s", (game,))
+        solo = post(
+            owner, "/tournaments/new", **draft_fields(game, title="Solo Invitational"), banner=image(),
+        ).headers["Location"]
+        solo_id = int(solo.rsplit("/", 1)[1])
+        post(owner, f"{solo}/publish")
+        captain_id = captains["NorthCaptain"]
+        north_captain = sign_in(app, captain_id)
+        assert "Заявки принимаются от игроков без команды" in north_captain.get(solo).get_data(as_text=True)
+        post(north_captain, f"{solo}/apply")
+        assert registration_for(solo_id, captain_id) is None
+
 
 def card_titles(response):
     assert response.status_code == 200
@@ -300,17 +316,20 @@ def test_catalog_combines_filters_sorting_and_pagination(app, client):
         def add(title, status="published", game=game_id):
             return db.execute(
                 """INSERT INTO tournaments(title,description,game_id,organizer_id,format,registration_type,
-                   status,max_participants,start_date,end_date,created_at,updated_at)
+                   status,max_participants,start_date,end_date,created_at,updated_at,completed_at)
                    VALUES (%s,%s,%s,%s,'single_elimination','solo',%s,8,
-                           '2030-04-01','2030-04-02','2030-03-01 00:00:00','2030-04-02 00:00:00')""",
-                (title, "Qualifier championship description", game, owner_id, status),
+                           '2030-04-01','2030-04-02','2030-03-01 00:00:00','2030-04-02 00:00:00',%s)""",
+                (
+                    title, "Qualifier championship description", game, owner_id, status,
+                    "2030-04-02 00:00:00" if status == "completed" else None,
+                ),
             )
 
         expected = [f"Contest {number:02d}" for number in range(13)]
         for title in reversed(expected):
             add(title, "in_progress" if title == expected[-1] else "published")
         hidden = [add("Hidden Contest", status) for status in ("draft", "cancelled")]
-        add("Archived Contest", "completed")
+        old_archive = add("Archived Contest", "completed")
         add("Other discipline", game=other_game)
 
         query = {"game": game_id, "q": "championship", "sort": "title_asc"}
@@ -350,9 +369,10 @@ def test_catalog_combines_filters_sorting_and_pagination(app, client):
         newest_archive = add("Recently Finished", "completed")
         db.execute(
             "UPDATE tournaments SET end_date='2030-04-01',start_date='2030-03-30',"
-            "updated_at='2030-04-03 00:00:00' WHERE id=%s",
+            "completed_at='2030-04-03 00:00:00' WHERE id=%s",
             (newest_archive,),
         )
+        db.execute("UPDATE tournaments SET updated_at='2030-04-04 00:00:00' WHERE id=%s", (old_archive,))
         assert card_titles(client.get("/history")) == ["Recently Finished", "Archived Contest"]
         for tournament_id in hidden:
             detail = f"/tournaments/{tournament_id}"
@@ -468,3 +488,98 @@ def test_admin_crud_enforces_dependencies_and_self_protection(app):
         spare = create_game("Unreferenced Game")
         post(admin, f"/admin/games/{spare}/delete")
         assert db.one("SELECT id FROM games WHERE id=%s", (spare,)) is None
+
+
+@pytest.mark.fr("FR-012", "FR-015", "FR-016", "NFR-003", "NFR-004")
+def test_organizer_can_delete_drafts_and_cancel_active_tournaments(app, client):
+    with app.app_context():
+        owner = sign_in(app, create_user("LifecycleOwner", "organizer"))
+        outsider = sign_in(app, create_user("LifecycleOutsider", "organizer"))
+        player_ids = [create_user(f"LifecyclePlayer{i}") for i in range(3)]
+        first, second, extra = [sign_in(app, player_id) for player_id in player_ids]
+        fields = draft_fields(create_game("Lifecycle Solo"))
+
+        detail = post(owner, "/tournaments/new", **fields, banner=image()).headers["Location"]
+        draft_id = int(detail.rsplit("/", 1)[1])
+        uploads = Path(app.config["UPLOAD_FOLDER"])
+        old_file = uploads / db.one("SELECT banner FROM tournaments WHERE id=%s", (draft_id,))["banner"]
+        assert old_file.is_file()
+        post(owner, f"{detail}/edit", **fields, banner=image(color="#66ab44"))
+        new_file = uploads / db.one("SELECT banner FROM tournaments WHERE id=%s", (draft_id,))["banner"]
+        assert new_file.is_file()
+        assert not old_file.exists()
+        post(outsider, f"{detail}/delete", status=404)
+        assert owner.post(f"{detail}/delete").status_code == 403
+        post(owner, f"{detail}/delete")
+        assert owner.get(detail).status_code == 404
+        assert not new_file.exists()
+
+        detail = post(owner, "/tournaments/new", **fields, banner=image()).headers["Location"]
+        tournament_id = int(detail.rsplit("/", 1)[1])
+        post(owner, f"{detail}/publish")
+        post(owner, f"{detail}/delete")
+        assert client.get(detail).status_code == 200
+        for actor, player_id in zip((first, second), player_ids[:2], strict=True):
+            post(actor, f"{detail}/apply")
+            registration_id = registration_for(tournament_id, player_id)["id"]
+            post(owner, f"/registrations/{registration_id}/approve")
+        assert "Все места заняты." in extra.get(detail).get_data(as_text=True)
+        post(extra, f"{detail}/apply")
+        assert registration_for(tournament_id, player_ids[2]) is None
+
+        post(owner, f"{detail}/generate-bracket")
+        match_id = db.one("SELECT id FROM matches WHERE tournament_id=%s", (tournament_id,))["id"]
+        post(outsider, f"{detail}/cancel", status=404)
+        post(owner, f"{detail}/cancel")
+        post(owner, f"/matches/{match_id}/result", score1="2", score2="1")
+        assert db.one("SELECT status FROM matches WHERE id=%s", (match_id,))["status"] == "cancelled"
+        assert client.get(detail).status_code == first.get(detail).status_code == 404
+        assert owner.get(detail).status_code == 200
+        assert b"Arena Invitational" in first.get("/my/tournaments").data
+        assert b"Arena Invitational" in first.get("/my/matches").data
+        assert "Отменён" in first.get("/my/tournaments").get_data(as_text=True)
+        assert b"Arena Invitational" not in extra.get("/my/tournaments").data
+        assert b"Arena Invitational" not in client.get("/history").data
+
+
+@pytest.mark.fr("FR-007", "FR-015")
+def test_upgrade_preserves_results_and_fills_legacy_dates(app, client):
+    with app.app_context():
+        owner = sign_in(app, create_user("LegacyOwner", "organizer"))
+        player_ids = [create_user(f"LegacyPlayer{i}") for i in range(2)]
+        fields = draft_fields(create_game("Legacy Solo"))
+        detail = post(owner, "/tournaments/new", **fields, banner=image()).headers["Location"]
+        tid = int(detail.rsplit("/", 1)[1])
+        post(owner, f"{detail}/publish")
+        for player_id in player_ids:
+            post(sign_in(app, player_id), f"{detail}/apply")
+            registration_id = registration_for(tid, player_id)["id"]
+            post(owner, f"/registrations/{registration_id}/approve")
+        post(owner, f"{detail}/generate-bracket")
+        match = db.one("SELECT id FROM matches WHERE tournament_id=%s", (tid,))
+        mid = match["id"]
+        db.execute("UPDATE matches SET scheduled_at=NULL WHERE id=%s", (mid,))
+        post(owner, f"/matches/{mid}/result", score1="2", score2="1")
+        db.execute("UPDATE tournaments SET updated_at='2030-04-02 15:00:00' WHERE id=%s", (tid,))
+        old = db.one("SELECT results_snapshot,updated_at FROM tournaments WHERE id=%s", (tid,))
+        db.execute(
+            """ALTER TABLE tournaments DROP INDEX idx_tournaments_history, DROP COLUMN completed_at,
+               ADD INDEX idx_tournaments_history (status, updated_at, id)"""
+        )
+        try:
+            runner = app.test_cli_runner()
+            for _ in range(2):
+                result = runner.invoke(args=["upgrade-db"])
+                assert result.exit_code == 0, result.exception
+            saved = db.one(
+                "SELECT results_snapshot,updated_at,completed_at FROM tournaments WHERE id=%s", (tid,)
+            )
+            assert saved["completed_at"] == saved["updated_at"] == old["updated_at"]
+            assert saved["results_snapshot"] == old["results_snapshot"]
+            dates = db.one("SELECT DATE(scheduled_at) AS date FROM matches WHERE id=%s", (mid,))
+            assert str(dates["date"]) == fields["start_date"]
+            assert b"01.04.2030" in client.get(detail).data
+            assert b"01.04.2030" in sign_in(app, player_ids[0]).get("/my/matches").data
+        finally:
+            # The database fixture is reused by later scenarios.
+            upgrade_schema()

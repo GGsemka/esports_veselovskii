@@ -2,7 +2,7 @@
 
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from itertools import combinations
+from itertools import combinations, pairwise
 from threading import Barrier
 from uuid import uuid4
 
@@ -90,6 +90,11 @@ def test_fr018_020_021_022_knockout(app):
             comp.finish_tournament(tid)
         initial = matches(tid)
         assert Counter(m["status"] for m in initial) == {"walkover": 3, "scheduled": 4}
+        first_date = tournament(tid)["start_date"]
+        last_date = tournament(tid)["end_date"]
+        assert initial[0]["scheduled_at"].date() == first_date
+        assert initial[-1]["scheduled_at"].date() == last_date
+        assert all(a["scheduled_at"] <= b["scheduled_at"] for a, b in pairwise(initial))
         with pytest.raises(comp.CompetitionError):
             comp.record_result(initial[-1]["id"], {"score1": "2", "score2": "1"})
         for original in initial:

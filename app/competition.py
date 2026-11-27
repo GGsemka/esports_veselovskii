@@ -8,7 +8,7 @@ from flask import Blueprint, abort, current_app, flash, g, redirect, request, ur
 from pymysql import MySQLError
 
 from . import db
-from .brackets import schedule, standings
+from .brackets import round_dates, schedule, standings
 from .security import role_required
 
 bp = Blueprint("competition", __name__)
@@ -51,6 +51,7 @@ def generate_bracket(tournament_id):
         if not 2 <= len(entries) <= tournament["max_participants"]:
             raise CompetitionError("Проверьте число одобренных участников: от двух до лимита турнира.")
         rounds = schedule([row["id"] for row in entries], tournament["format"])
+        dates = round_dates(tournament["start_date"], tournament["end_date"], len(rounds))
         knockout = tournament["format"] == "single_elimination"
         parents = []
         for round_idx in reversed(range(len(rounds))):
@@ -62,7 +63,8 @@ def generate_bracket(tournament_id):
                 match_id = db.execute(
                     """INSERT INTO matches
                        (tournament_id,round_number,match_number,registration1_id,registration2_id,
-                        next_match_id,status,winner_registration_id) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        next_match_id,status,winner_registration_id,scheduled_at)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (
                         tournament_id,
                         round_idx + 1,
@@ -72,6 +74,7 @@ def generate_bracket(tournament_id):
                         parent,
                         "walkover" if bye else "scheduled",
                         winner,
+                        dates[round_idx],
                     ),
                 )
                 ids.append(match_id)
@@ -100,7 +103,7 @@ def _complete(tournament_id):
     tournament = db.one("SELECT * FROM tournaments WHERE id=%s", (tournament_id,))
     snapshot = json.dumps(bracket_context(tournament), ensure_ascii=False, default=str)
     db.execute(
-        "UPDATE tournaments SET status='completed',results_snapshot=%s WHERE id=%s",
+        "UPDATE tournaments SET status='completed',completed_at=CURRENT_TIMESTAMP,results_snapshot=%s WHERE id=%s",
         (snapshot, tournament_id),
     )
 

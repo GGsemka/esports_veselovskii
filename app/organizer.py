@@ -5,7 +5,7 @@ from flask import Blueprint, abort, flash, g, redirect, render_template, request
 from . import db
 from .public import CARD
 from .security import role_required
-from .uploads import uploaded
+from .uploads import remove_upload, uploaded
 
 bp = Blueprint("organizer", __name__)
 
@@ -56,11 +56,14 @@ def editor(tournament_id=None):
     if request.method == "POST":
         try:
             fields = validate_tournament(request.form, games)
+            replaced_banner = None
             with uploaded(request.files.get("banner")) as filename, db.transaction():
                 if tournament_id:
                     row = owned(tournament_id, True)
                     if row["status"] != "draft":
                         abort(409)
+                    if filename:
+                        replaced_banner = row["banner"]
                     db.execute(
                         """UPDATE tournaments SET title=%s,description=%s,game_id=%s,format=%s,
                                registration_type=%s,max_participants=%s,start_date=%s,end_date=%s,
@@ -74,6 +77,7 @@ def editor(tournament_id=None):
                          end_date,banner,organizer_id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                         (*fields, filename, g.user["id"]),
                     )
+            remove_upload(replaced_banner)
             flash("Черновик сохранён.", "success")
             return detail_redirect(tournament_id)
         except ValueError as error:
@@ -136,6 +140,44 @@ def unpublish(tournament_id):
     return detail_redirect(tournament_id)
 
 
+@bp.post("/tournaments/<int:tournament_id>/delete")
+@role_required("organizer")
+def delete(tournament_id):
+    with db.transaction():
+        row = owned(tournament_id, True)
+        if row["status"] != "draft":
+            flash("Удалить можно только черновик.", "error")
+            return detail_redirect(tournament_id)
+        db.execute("DELETE FROM tournaments WHERE id=%s AND organizer_id=%s", (tournament_id, g.user["id"]))
+    remove_upload(row["banner"])
+    flash("Черновик удалён.", "success")
+    return redirect(url_for("organizer.mine"))
+
+
+@bp.post("/tournaments/<int:tournament_id>/cancel")
+@role_required("organizer")
+def cancel(tournament_id):
+    with db.transaction():
+        row = owned(tournament_id, True)
+        if row["status"] not in ("draft", "published", "in_progress"):
+            flash("Этот турнир уже закрыт.", "error")
+            return detail_redirect(tournament_id)
+        db.execute(
+            "UPDATE matches SET status='cancelled' WHERE tournament_id=%s AND status='scheduled'",
+            (tournament_id,),
+        )
+        db.execute("UPDATE tournaments SET status='cancelled' WHERE id=%s", (tournament_id,))
+    flash("Турнир отменён.", "success")
+    return detail_redirect(tournament_id)
+
+
+def approved_count(tournament_id):
+    return db.one(
+        "SELECT COUNT(*) AS n FROM registrations WHERE tournament_id=%s AND status='approved'",
+        (tournament_id,),
+    )["n"]
+
+
 def eligible_team(team_id, tournament):
     team = db.one("SELECT id,game_id FROM teams WHERE id=%s FOR UPDATE", (team_id,))
     game = db.one("SELECT team_size_min,team_size_max FROM games WHERE id=%s", (tournament["game_id"],))
@@ -169,12 +211,20 @@ def apply(tournament_id):
                     abort(403)
                 team_id, user_id = team["team_id"], None
                 eligible_team(team_id, row)
+            elif db.one(
+                """SELECT tm.id FROM team_members tm JOIN teams t ON t.id=tm.team_id
+                   WHERE tm.user_id=%s AND t.game_id=%s""",
+                (user_id, row["game_id"]),
+            ):
+                raise ValueError("Этот турнир для игроков без команды по данной дисциплине.")
             if db.one(
                 """SELECT id FROM registrations WHERE tournament_id=%s AND
                          (user_id=%s OR team_id=%s) AND status IN ('pending','approved')""",
                 (tournament_id, user_id, team_id),
             ):
                 raise ValueError("Активная заявка уже есть.")
+            if approved_count(tournament_id) >= row["max_participants"]:
+                raise ValueError("Достигнут лимит участников.")
             db.execute(
                 "INSERT INTO registrations(tournament_id,user_id,team_id) VALUES(%s,%s,%s)",
                 (tournament_id, user_id, team_id),
@@ -247,13 +297,8 @@ def moderate(registration_id, approve):
             if not row or row["status"] != "pending" or tournament["status"] != "published":
                 raise ValueError("Эту заявку уже нельзя изменить.")
             if approve:
-                count = db.one(
-                    """SELECT COUNT(*) AS n FROM registrations
-                               WHERE tournament_id=%s AND status='approved'""",
-                    (tid,),
-                )["n"]
-                if count >= tournament["max_participants"]:
-                    raise ValueError("Достигнут лимит")
+                if approved_count(tid) >= tournament["max_participants"]:
+                    raise ValueError("Достигнут лимит участников.")
                 if row["team_id"]:
                     eligible_team(row["team_id"], tournament)
                 status, reason = "approved", None

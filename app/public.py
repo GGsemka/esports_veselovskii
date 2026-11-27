@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, current_app, g, render_template, request
 
 from . import db
+from .brackets import round_dates
 from .competition import bracket_context
 
 bp = Blueprint("public", __name__)
@@ -38,7 +39,7 @@ def catalog(history):
     sort = request.args.get("sort", "new_desc")
     if sort not in SORTS:
         sort = "new_desc"
-    order = "t.updated_at DESC,t.id DESC" if history else SORTS[sort]
+    order = "t.completed_at DESC,t.id DESC" if history else SORTS[sort]
     rows = db.all(
         CARD + where + " ORDER BY " + order + " LIMIT %s OFFSET %s", (*args, size, (page - 1) * size)
     )
@@ -111,12 +112,15 @@ def detail(tournament_id):
                                  AND (user_id=%s OR team_id=%s) ORDER BY id DESC LIMIT 1""",
             (tournament_id, g.user["id"], team["id"] if team else None),
         )
-        can_represent = tournament["registration_type"] == "solo" or bool(
-            team and team["member_role"] == "captain" and team["game_id"] == tournament["game_id"]
-        )
+        same_game = bool(team and team["game_id"] == tournament["game_id"])
+        if tournament["registration_type"] == "solo":
+            can_represent = not same_game
+        else:
+            can_represent = same_game and team["member_role"] == "captain"
         can_apply = (
             can_represent
             and tournament["status"] == "published"
+            and tournament["approved_count"] < tournament["max_participants"]
             and (not registration or registration["status"] in {"withdrawn", "rejected"})
         )
         if registration:
@@ -133,6 +137,7 @@ def detail(tournament_id):
         registration=registration,
         can_apply=can_apply,
         thread_id=thread and thread["id"],
+        round_dates=round_dates(tournament["start_date"], tournament["end_date"], len(context["rounds"])),
         has_registrations=bool(
             is_owner
             and db.one("SELECT id FROM registrations WHERE tournament_id=%s LIMIT 1", (tournament_id,))
