@@ -20,7 +20,7 @@
     <section class="game-showcase" aria-label="Подборки по играм">
       {% for discipline, slug, title, blurb in featured.items %}
       <article class="game-feature game-feature-{{ slug }}">
-        <div class="game-poster">
+        <div class="game-poster" data-preview-gif="{{ url_for('static', filename='art/feature-' ~ slug ~ '.gif') }}">
           <img src="{{ url_for('static', filename='art/feature-' ~ slug ~ '.webp') }}" alt="" width="424" height="640">
         </div>
         <div class="game-feature-copy">
