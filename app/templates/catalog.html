@@ -20,7 +20,7 @@
     <section class="game-showcase" aria-label="Подборки по играм">
       {% for discipline, slug, title, blurb in featured.items %}
       <article class="game-feature game-feature-{{ slug }}">
-        <div class="game-poster">
+        <div class="game-poster" data-preview-gif="{{ url_for('static', filename='art/feature-' ~ slug ~ '.gif') }}">
           <img src="{{ url_for('static', filename='art/feature-' ~ slug ~ '.webp') }}" alt="" width="424" height="640">
         </div>
         <div class="game-feature-copy">
@@ -67,9 +67,20 @@
         <div class="tournament-body">
           <div class="game-label">{{ t.game_name }}</div>
           <h3><a class="tournament-link" href="/tournaments/{{ t.id }}">{{ t.title }}</a></h3>
-          <p class="tournament-dates">{{ icon('calendar') }} {{ date(t.start_date) }}{% if t.end_date %} – {{ date(t.end_date) }}{% endif %}</p>
-          <div class="tournament-tags">{{ status(t.status) }}</div>
-          <span class="tournament-more" aria-hidden="true">Подробнее</span>
+          <p class="tournament-dates">
+            {% if t.start_date.strftime is defined and t.end_date.strftime is defined and
+                  t.start_date.year == t.end_date.year and t.start_date.month == t.end_date.month %}
+              {% set months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                               'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'] %}
+              {{ t.start_date.day }}–{{ t.end_date.day }} {{ months[t.start_date.month - 1] }} {{ t.start_date.year }}
+            {% else %}
+              {{ date(t.start_date) }}{% if t.end_date %} – {{ date(t.end_date) }}{% endif %}
+            {% endif %}
+          </p>
+          <div class="tournament-card-footer">
+            {{ status(t.status) }}
+            <span class="tournament-more" aria-hidden="true">Подробнее</span>
+          </div>
         </div>
       </article>
       {% endfor %}

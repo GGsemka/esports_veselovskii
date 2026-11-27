@@ -15,6 +15,35 @@
     } catch {}
   });
 
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  for (const poster of document.querySelectorAll('[data-preview-gif]')) {
+    const card = poster.closest('.game-feature');
+    let preview;
+
+    const stopPreview = () => {
+      preview?.remove();
+      preview = undefined;
+    };
+
+    card.addEventListener('pointerenter', event => {
+      if (event.pointerType !== 'mouse' || motion.matches || preview) return;
+      const image = document.createElement('img');
+      image.alt = '';
+      image.className = 'game-poster-preview';
+      image.hidden = true;
+      image.addEventListener('load', () => { image.hidden = false; }, { once: true });
+      image.addEventListener('error', () => {
+        if (preview === image) stopPreview();
+      }, { once: true });
+      preview = image;
+      poster.append(image);
+      image.src = poster.dataset.previewGif;
+    });
+
+    card.addEventListener('pointerleave', stopPreview);
+    motion.addEventListener('change', stopPreview);
+  }
+
   for (const form of document.querySelectorAll('[data-confirm]')) {
     form.addEventListener('submit', event => {
       if (!window.confirm(form.dataset.confirm)) event.preventDefault();
