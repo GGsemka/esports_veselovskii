@@ -219,6 +219,23 @@ html[data-theme="light"] .tournament-card-footer .badge.published { color: #9c36
 .tournament-more { color: var(--ink); font-weight: 750; font-size: .875rem; }
 .tournament-card:hover .tournament-more,
 .tournament-card:focus-within .tournament-more { text-decoration: underline; text-underline-offset: 3px; }
+.tournament-more { padding: 5px 8px; margin-inline-end: -8px; border-radius: var(--radius); }
+.tournament-card:focus-within .tournament-more { background: var(--accent); color: var(--accent-ink); }
+
+@media (hover: hover) and (pointer: fine) {
+  .tournament-card:hover {
+    background: color-mix(in srgb, var(--surface) 86%, white);
+    border-color: color-mix(in srgb, var(--line) 72%, white);
+  }
+  .tournament-card:hover .tournament-cover img { filter: brightness(1.13) contrast(.87); }
+  .tournament-card:hover .tournament-more { background: var(--accent); color: var(--accent-ink); text-decoration: none; }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .tournament-card { transition: background-color 260ms ease, border-color 260ms ease; }
+  .tournament-card .tournament-cover img { transition: filter 260ms ease; }
+  .tournament-card .tournament-more { transition: background-color 260ms ease, color 260ms ease; }
+}
+
 .pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; margin-top: 20px; font-family: var(--tech); }
 .pagination a, .pagination span { display: grid; min-width: 36px; min-height: 36px; place-items: center; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .pagination a[aria-current], .pagination a:hover { background: var(--accent); color: var(--accent-ink); }
