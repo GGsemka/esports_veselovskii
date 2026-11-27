@@ -3,7 +3,7 @@
 {% set archived = history|default(request.path == '/history') %}
 {% block title %}{{ 'История' if archived else 'Турниры' }}{% endblock %}
 {% block content %}
-<div class="wrap page {% if not archived %}catalog-page{% endif %}">
+<div class="wrap page catalog-page">
   {% if not archived %}
     {% set features = [
       ('cs2', ['counter-strike 2', 'cs2'], 'Counter-Strike 2', 'Соберите пятёрку и найдите турнир для своей команды.'),
@@ -20,7 +20,9 @@
     <section class="game-showcase" aria-label="Подборки по играм">
       {% for discipline, slug, title, blurb in featured.items %}
       <article class="game-feature game-feature-{{ slug }}">
-        <div class="game-poster" data-preview-gif="{{ url_for('static', filename='art/feature-' ~ slug ~ '.gif') }}">
+        <div class="game-poster"
+             data-preview-video="{{ url_for('static', filename='art/feature-' ~ slug ~ '.mp4') }}"
+             {% if slug == 'valorant' %}data-preview-fallback="{{ url_for('static', filename='art/feature-valorant-avc.mp4') }}"{% endif %}>
           <img src="{{ url_for('static', filename='art/feature-' ~ slug ~ '.webp') }}" alt="" width="424" height="640">
         </div>
         <div class="game-feature-copy">

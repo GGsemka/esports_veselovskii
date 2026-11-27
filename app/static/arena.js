@@ -16,28 +16,51 @@
   });
 
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  for (const poster of document.querySelectorAll('[data-preview-gif]')) {
+  for (const poster of document.querySelectorAll('[data-preview-video]')) {
     const card = poster.closest('.game-feature');
     let preview;
 
     const stopPreview = () => {
-      preview?.remove();
+      if (!preview) return;
+      const video = preview;
       preview = undefined;
+      video.pause();
+      video.removeAttribute('src');
+      video.replaceChildren();
+      video.load();
+      video.remove();
     };
 
     card.addEventListener('pointerenter', event => {
       if (event.pointerType !== 'mouse' || motion.matches || preview) return;
-      const image = document.createElement('img');
-      image.alt = '';
-      image.className = 'game-poster-preview';
-      image.hidden = true;
-      image.addEventListener('load', () => { image.hidden = false; }, { once: true });
-      image.addEventListener('error', () => {
-        if (preview === image) stopPreview();
-      }, { once: true });
-      preview = image;
-      poster.append(image);
-      image.src = poster.dataset.previewGif;
+      const video = document.createElement('video');
+      video.className = 'game-poster-preview';
+      video.hidden = true;
+      video.muted = true;
+      video.defaultMuted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.setAttribute('aria-hidden', 'true');
+      video.addEventListener('playing', () => { video.hidden = false; }, { once: true });
+      const showPoster = () => {
+        if (preview === video) stopPreview();
+      };
+      video.addEventListener('error', showPoster, { once: true });
+      preview = video;
+      if (poster.dataset.previewFallback) {
+        const original = document.createElement('source');
+        original.src = poster.dataset.previewVideo;
+        original.type = 'video/mp4; codecs="hvc1"';
+        const fallback = document.createElement('source');
+        fallback.src = poster.dataset.previewFallback;
+        fallback.type = 'video/mp4';
+        fallback.addEventListener('error', showPoster, { once: true });
+        video.append(original, fallback);
+      } else {
+        video.src = poster.dataset.previewVideo;
+      }
+      poster.append(video);
+      video.play().catch(showPoster);
     });
 
     card.addEventListener('pointerleave', stopPreview);

@@ -1,5 +1,5 @@
 {% from "_ui.html" import icon, csrf with context %}
-{% set is_home = request.endpoint == 'public.index' %}
+{% set is_catalog = request.endpoint in ['public.index', 'public.history'] %}
 {% macro navigation() %}
 <nav class="nav" aria-label="Главное меню">
         <a href="/" {% if request.path == '/' %}aria-current="page"{% endif %}>{{ icon('events') }}<span>Турниры</span></a>
@@ -17,7 +17,7 @@
       </nav>
 {% endmacro %}
 <!doctype html>
-<html lang="ru"{% if is_home and not g.user %} data-theme="light"{% endif %}>
+<html lang="ru"{% if is_catalog and not g.user %} data-theme="light"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,21 +27,21 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='arena.css') }}">
   <script src="{{ url_for('static', filename='arena.js') }}" defer></script>
 </head>
-<body{% if is_home %} class="arena-home"{% endif %}>
+<body{% if is_catalog %} class="arena-home"{% endif %}>
   <a class="skip-link button" href="#main">К содержимому</a>
   <header class="site-header" id="top">
     <div class="wrap header-inner">
       <a class="brand" href="/" aria-label="Арена — главная">
         <span class="brand-symbol">{{ icon('brand') }}</span>АРЕНА
       </a>
-      {% if is_home %}
+      {% if is_catalog %}
       <nav class="home-nav" aria-label="Главное меню">
-        <a href="{{ url_for('public.index') }}" aria-current="page">Турниры</a>
-        <a href="{{ url_for('public.history') }}">История</a>
+        <a href="{{ url_for('public.index') }}"{% if request.endpoint == 'public.index' %} aria-current="page"{% endif %}>Турниры</a>
+        <a href="{{ url_for('public.history') }}"{% if request.endpoint == 'public.history' %} aria-current="page"{% endif %}>История</a>
       </nav>
       {% endif %}
-      {% if not is_home or g.user %}
-      <details class="mobile-menu{% if is_home %} home-account-menu{% endif %}">
+      {% if not is_catalog or g.user %}
+      <details class="mobile-menu{% if is_catalog %} home-account-menu{% endif %}">
         <summary class="icon-button" aria-label="Разделы">{{ icon('menu') }}</summary>
         {{ navigation() }}
       </details>
@@ -55,14 +55,14 @@
           {% else %}<span class="user-label">{{ g.user.nickname }}</span>{% endif %}
           <form action="/logout" method="post">{{ csrf() }}<button class="button button-secondary" type="submit">Выйти</button></form>
         {% else %}
-          <a class="button{% if not is_home %} button-secondary{% endif %}" href="/login">Войти</a>
-          {% if not is_home %}<a class="button header-signup" href="/register">Регистрация</a>{% endif %}
+          <a class="button{% if not is_catalog %} button-secondary{% endif %}" href="/login">Войти</a>
+          {% if not is_catalog %}<a class="button header-signup" href="/register">Регистрация</a>{% endif %}
         {% endif %}
       </div>
     </div>
   </header>
   <div class="site-layout">
-    {% if not is_home %}<aside class="site-sidebar">{{ navigation() }}</aside>{% endif %}
+    {% if not is_catalog %}<aside class="site-sidebar">{{ navigation() }}</aside>{% endif %}
     <div class="site-content">
   <main id="main" class="site-main">
     {% with messages = get_flashed_messages(with_categories=true) %}
