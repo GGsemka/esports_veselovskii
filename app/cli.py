@@ -8,6 +8,7 @@ from flask import g
 from werkzeug.security import generate_password_hash
 
 from . import db
+from .brackets import round_dates
 from .competition import generate_bracket, record_result
 
 SCHEMA = Path(__file__).resolve().parent.parent / "schema.sql"
@@ -49,6 +50,34 @@ def init_schema():
                 statement.clear()
     if statement:
         raise RuntimeError("Незавершённая инструкция SQL.")
+
+
+def upgrade_schema():
+    if not db.one("SHOW COLUMNS FROM tournaments WHERE Field=%s", ("completed_at",)):
+        db.execute(
+            """ALTER TABLE tournaments ADD COLUMN completed_at DATETIME NULL,
+               DROP INDEX idx_tournaments_history,
+               ADD INDEX idx_tournaments_history (status, completed_at, id)"""
+        )
+
+    with db.transaction():
+        db.execute(
+            """UPDATE tournaments SET completed_at=updated_at,updated_at=updated_at
+               WHERE status='completed' AND completed_at IS NULL"""
+        )
+        tournaments = db.all(
+            """SELECT t.id,t.start_date,t.end_date,MAX(m.round_number) AS round_count
+               FROM tournaments t JOIN matches m ON m.tournament_id=t.id
+               GROUP BY t.id HAVING COUNT(m.scheduled_at)<COUNT(*)"""
+        )
+        for tournament in tournaments:
+            dates = round_dates(tournament["start_date"], tournament["end_date"], tournament["round_count"])
+            for number, planned_date in enumerate(dates, 1):
+                db.execute(
+                    """UPDATE matches SET scheduled_at=%s
+                       WHERE tournament_id=%s AND round_number=%s AND scheduled_at IS NULL""",
+                    (planned_date, tournament["id"], number),
+                )
 
 
 def empty_database():
@@ -173,6 +202,14 @@ def register(app):
             raise click.ClickException("init-db предназначен для пустой БД.")
         init_schema()
         click.echo("Схема создана.")
+
+    @app.cli.command("upgrade-db")
+    def upgrade():
+        """Upgrade an existing Arena database."""
+        if not db.one("SHOW TABLES LIKE %s", ("tournaments",)):
+            raise click.ClickException("Сначала создайте схему командой init-db.")
+        upgrade_schema()
+        click.echo("Схема обновлена, существующие данные сохранены.")
 
     @app.cli.command("seed-demo")
     @click.option(

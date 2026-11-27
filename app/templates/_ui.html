@@ -35,6 +35,15 @@
 
 {% macro date(value) %}{% if value %}{{ value.strftime('%d.%m.%Y') if value.strftime is defined else value|string|truncate(10, true, '') }}{% else %}—{% endif %}{% endmacro %}
 
+{% macro match_date(value) -%}
+  {% if value -%}
+    {% set stamp = value|string -%}
+    {{ stamp[8:10] }}.{{ stamp[5:7] }}.{{ stamp[:4] }}
+    {%- set clock = stamp[11:16] -%}
+    {% if clock and clock != '00:00' %} в {{ clock }}{% endif -%}
+  {% else %}—{% endif -%}
+{%- endmacro %}
+
 {% macro datetime(value) %}{% if value %}{{ value.strftime('%d.%m.%Y в %H:%M') if value.strftime is defined else value }}{% else %}—{% endif %}{% endmacro %}
 
 {% macro empty(title, note='') %}

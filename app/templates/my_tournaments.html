@@ -8,10 +8,11 @@
   <div class="cards">{% for t in tournaments %}
     <article class="card">
       <span class="game-label">{{ t.game_name }}</span>
-      <h3><a href="/tournaments/{{ t.id }}">{{ t.title }}</a></h3>
+      <h3>{% if t.status == 'cancelled' %}{{ t.title }}{% else %}<a href="/tournaments/{{ t.id }}">{{ t.title }}</a>{% endif %}</h3>
       <div class="stack quiet"><div class="cluster">Турнир {{ status(t.status) }}</div><div class="cluster">Заявка {{ status(t.registration_status) }}</div></div>
       {% if t.rejection_reason %}<p class="quiet">{{ t.rejection_reason }}</p>{% endif %}
-      <div class="card-foot"><a class="text-link quiet" href="/tournaments/{{ t.id }}">Подробнее</a>
+      <div class="card-foot">
+        {% if t.status != 'cancelled' %}<a class="text-link quiet" href="/tournaments/{{ t.id }}">Подробнее</a>{% endif %}
         {% if t.thread_id %}<a class="button button-secondary" href="{{ url_for('chat.thread', thread_id=t.thread_id) }}">Чат</a>{% endif %}
       </div>
     </article>

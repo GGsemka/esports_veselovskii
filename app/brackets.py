@@ -1,6 +1,16 @@
 """Tournament schedules and standings. Entrants are represented by registration IDs."""
 
 from collections import defaultdict
+from datetime import timedelta
+
+
+def round_dates(start, end, round_count):
+    """Return calendar dates in playing order within the tournament interval."""
+    days = (end - start).days
+    return [
+        start + timedelta(days=days * round_index // max(1, round_count - 1))
+        for round_index in range(round_count)
+    ]
 
 
 def schedule(entrants, tournament_format):
