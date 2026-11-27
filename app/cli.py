@@ -124,6 +124,48 @@ def seed(password, benchmark=False):
         record_result(match["id"], {"score1": "2", "score2": "1"})
 
 
+def seed_featured_tournaments():
+    """Add the showcase tournaments to an existing demo database."""
+    titles = (
+        ("Deadlock", 6, "Кубок перекрёстков"),
+        ("Overwatch", 5, "Фронт арены"),
+    )
+    with db.transaction():
+        owner = db.one(
+            "SELECT id FROM users WHERE nickname=%s AND role='organizer' FOR UPDATE",
+            ("arena_org",),
+        )
+        if not owner:
+            raise click.ClickException("Сначала наполните локальную демобазу командой seed-demo.")
+        for game, size, title in titles:
+            db.execute(
+                """INSERT INTO games(name,team_size_min,team_size_max,format)
+                   VALUES(%s,%s,%s,'team') ON DUPLICATE KEY UPDATE id=id""",
+                (game, size, size),
+            )
+            game_id = db.one("SELECT id FROM games WHERE name=%s", (game,))["id"]
+            if db.one(
+                "SELECT id FROM tournaments WHERE organizer_id=%s AND game_id=%s AND title=%s",
+                (owner["id"], game_id, title),
+            ):
+                continue
+            db.execute(
+                """INSERT INTO tournaments
+                   (title,description,game_id,organizer_id,format,registration_type,status,
+                    max_participants,start_date,end_date,banner)
+                   VALUES(%s,%s,%s,%s,'single_elimination','team','published',16,%s,%s,%s)""",
+                (
+                    title,
+                    f"Открытый командный турнир по {game}. Соберите состав и подайте заявку.",
+                    game_id,
+                    owner["id"],
+                    date.today() + timedelta(days=14),
+                    date.today() + timedelta(days=16),
+                    f"art/feature-{game.lower()}.webp",
+                ),
+            )
+
+
 def register(app):
     @app.cli.command("init-db")
     def init():
@@ -142,7 +184,13 @@ def register(app):
     )
     def demo(password):
         seed(password)
+        seed_featured_tournaments()
         click.echo("Демо-аккаунты: " + ", ".join(DEMO_NAMES))
+
+    @app.cli.command("seed-featured-tournaments")
+    def featured_tournaments():
+        seed_featured_tournaments()
+        click.echo("Демо-турниры Deadlock и Overwatch доступны в каталоге.")
 
     @app.cli.command("seed-benchmark")
     def benchmark():
