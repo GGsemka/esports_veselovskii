@@ -3,15 +3,18 @@
 {% set t = tournament %}
 {% block title %}{{ t.title }}{% endblock %}
 {% block content %}
-<div class="wrap page">
-  <div class="breadcrumb"><a href="{{ '/history' if t.status == 'completed' else '/' }}">{{ 'История' if t.status == 'completed' else 'Турниры' }}</a><span>›</span><span>{{ t.title }}</span></div>
-  <section class="detail-hero">
+<div class="wrap page catalog-page">
+  <nav class="breadcrumb" aria-label="Положение в каталоге">
+    <a href="{{ url_for('public.history') if t.status == 'completed' else url_for('public.index') }}">{{ 'История' if t.status == 'completed' else 'Турниры' }}</a>
+    <span aria-hidden="true">›</span><span aria-current="page">{{ t.title }}</span>
+  </nav>
+  <section class="panel detail-hero" aria-labelledby="tournament-title">
+    <div class="tournament-cover cover-{{ t.game_id|int % 4 }}" aria-hidden="true">{{ tournament_art(t) }}</div>
     <div class="detail-heading">
       <div class="cluster"><span class="game-label">{{ t.game_name }}</span>{{ status(t.status) }}</div>
-      <h1>{{ t.title }}</h1>
-      <p class="muted">{{ date(t.start_date) }} – {{ date(t.end_date) }}</p>
+      <h1 id="tournament-title">{{ t.title }}</h1>
+      <p class="tournament-dates">{{ date(t.start_date) }} – {{ date(t.end_date) }}</p>
     </div>
-    <div class="tournament-cover cover-{{ t.game_id|int % 4 }}" aria-hidden="true">{{ tournament_art(t) }}</div>
   </section>
   {% if is_owner %}
   <section class="panel section stack" aria-labelledby="manage-heading">

@@ -11,7 +11,8 @@ SORTS = {
     "title_asc": "t.title ASC,t.id ASC",
     "title_desc": "t.title DESC,t.id DESC",
 }
-CARD = """SELECT t.id,t.title,t.description,t.status,t.start_date,t.end_date,t.created_at,t.updated_at,
+CARD = """SELECT t.id,t.title,t.description,t.status,t.start_date,t.end_date,
+    t.completed_at,t.created_at,t.updated_at,
     t.game_id,t.banner,t.max_participants,t.format,t.registration_type,g.name AS game_name,
     (SELECT COUNT(*) FROM registrations r WHERE r.tournament_id=t.id
      AND r.status='approved') AS approved_count FROM tournaments t
@@ -132,6 +133,7 @@ def detail(tournament_id):
     return render_template(
         "detail.html",
         tournament=tournament,
+        games=db.all("SELECT id,name FROM games ORDER BY name LIMIT 4"),
         is_owner=is_owner,
         participants=participants,
         registration=registration,

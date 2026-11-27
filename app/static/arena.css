@@ -89,7 +89,7 @@ code, .mono { font-family: var(--tech); }
 .site-footer {
   --accent: #ff7134;
   --accent-ink: #211107;
-  color: #ededed;
+  color: #ccc;
   background: var(--footer-bg);
   border-top: 1px solid #343434;
 }
@@ -100,21 +100,20 @@ code, .mono { font-family: var(--tech); }
   gap: 40px 56px;
   padding-block: 48px 38px;
 }
-.footer-intro { display: grid; justify-items: start; gap: 14px; }
+.footer-intro { display: grid; justify-items: start; gap: 18px; }
 .footer-intro .brand { font-size: 1.45rem; letter-spacing: -.06em; }
-.footer-intro p { color: #b8b8b8; }
 .footer-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
-.footer-group h2 { font: 750 .9rem/1.4 var(--heading); letter-spacing: 0; color: #b8b8b8; }
-.footer-group ul { display: grid; gap: 11px; list-style: none; padding: 0; margin: 14px 0 0; }
+.footer-group h2 { font: 750 .9rem/1.4 var(--heading); letter-spacing: 0; color: #5d5d5d; }
+.footer-group ul { display: grid; gap: 20px; list-style: none; padding: 0; margin: 18px 0 0; }
 .footer-group a { display: inline-block; overflow-wrap: anywhere; }
 .footer-group a:hover, .footer-bottom a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.footer-bottom { border-top: 1px solid #343434; display: flex; justify-content: space-between; gap: 16px; padding-block: 17px; color: #b8b8b8; font-size: .875rem; }
+.footer-bottom { border-top: 1px solid #343434; display: flex; justify-content: space-between; gap: 16px; padding-block: 17px; font-size: .875rem; }
 @media (max-width: 760px) {
   .footer-inner { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 32px; }
 }
 @media (max-width: 480px) {
   .footer-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; }
-  .footer-group ul { gap: 8px; }
+  .footer-group ul { gap: 16px; }
 }
 .page { padding-block: 44px 68px; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 18px; margin-bottom: 28px; }
@@ -252,7 +251,7 @@ html[data-theme="light"] .tournament-card-footer .badge.published { color: #9c36
 .tournament-card:focus-within .tournament-more { text-decoration: underline; text-underline-offset: 3px; }
 .tournament-more { padding: 5px 8px; margin-inline-end: -8px; border-radius: var(--radius); }
 .tournament-card:focus-within .tournament-more,
-.game-feature:focus-within .button { background: var(--accent); color: var(--accent-ink); }
+.game-feature:not(.game-feature-cs2):focus-within .button { background: var(--accent); color: var(--accent-ink); }
 
 @media (hover: hover) and (pointer: fine) {
   .tournament-card:hover, .game-feature:hover {
@@ -275,13 +274,15 @@ html[data-theme="light"] .tournament-card-footer .badge.published { color: #9c36
 .pagination a[aria-current], .pagination a:hover { background: var(--accent); color: var(--accent-ink); }
 .breadcrumb { margin-bottom: 14px; display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: .87rem; }
 .breadcrumb a:hover { color: var(--accent); }
-.detail-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .65fr); align-items: stretch; min-height: 225px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
-.detail-hero .tournament-cover { height: 100%; min-height: 160px; aspect-ratio: auto; }
-.detail-heading { padding: clamp(19px, 3.8vw, 40px); display: grid; gap: 10px; align-content: center; overflow-wrap: anywhere; }
+.detail-hero { display: grid; grid-template-columns: clamp(140px, 21vw, 232px) minmax(0, 1fr); padding: 0; overflow: hidden; }
+.detail-hero .tournament-cover { align-self: stretch; width: 100%; min-height: 150px; aspect-ratio: auto; }
+.detail-heading { display: grid; align-content: center; gap: 10px; min-width: 0; padding: clamp(14px, 4vw, 44px); overflow-wrap: anywhere; }
+.detail-heading h1 { font-size: clamp(1.65rem, 4vw, 3.5rem); }
+.detail-heading .tournament-dates { font-size: .9rem; }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; gap: 16px; margin-top: 20px; }
 .detail-description { white-space: pre-line; overflow-wrap: anywhere; }
 .detail-aside { display: grid; gap: 10px; }
-.detail-aside .stat-grid { margin: 0; }
+.detail-aside .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
 .participants { columns: 3 180px; padding-left: 1.3rem; margin-bottom: 0; }
 .participants li { margin-block: 5px; overflow-wrap: anywhere; }
 .match-tile:target { border-color: var(--accent); }
@@ -310,8 +311,8 @@ html[data-theme="light"] .tournament-card-footer .badge.published { color: #9c36
   .tournament-card h3 { font-size: clamp(1.1rem, 4.3vw, 1.35rem); }
   .tournament-dates svg { display: none; }
   .detail-grid { grid-template-columns: 1fr; }
-  .detail-hero { grid-template-columns: 1fr; }
-  .detail-hero .tournament-cover { min-height: 120px; max-height: 150px; }
+  .detail-hero { grid-template-columns: minmax(0, 34%) minmax(0, 1fr); }
+  .detail-hero .tournament-cover { min-height: 120px; }
 }
 @media (max-width: 390px) {
   .brand { font-size: 1rem; }
@@ -349,7 +350,7 @@ tbody tr:has(.admin-edit[open]) td { vertical-align: top; }
 .header-actions .button, .header-actions .icon-button, .mobile-menu summary { min-height: 34px; }
 .header-actions .button { padding-block: 6px; }
 
-/* Public catalogue and its horizontal navigation. */
+/* Public tournament pages and their horizontal navigation. */
 html[data-theme="light"] .arena-home {
   --bg: #eaeaea;
   --surface: #f5f5f5;
@@ -364,7 +365,7 @@ html[data-theme="light"] .arena-home {
 .arena-home .header-inner { min-height: 62px; width: min(var(--page), calc(100% - 48px)); }
 .home-nav { display: flex; align-self: stretch; gap: 25px; margin-left: 26px; }
 .home-nav a { display: grid; align-items: center; border-bottom: 2px solid transparent; font-size: .9rem; font-weight: 750; color: var(--muted); }
-.home-nav a:hover, .home-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.home-nav a:hover, .home-nav a[aria-current] { color: var(--ink); border-bottom-color: var(--accent); }
 .arena-home .home-account-menu { display: block; margin-left: auto; }
 .home-account-menu summary { list-style: none; cursor: pointer; }
 .home-account-menu summary::-webkit-details-marker { display: none; }
@@ -383,8 +384,10 @@ html[data-theme="light"] .arena-home {
 .game-feature { display: grid; border-radius: var(--radius); grid-template-columns: minmax(125px, 37%) minmax(0, 1fr); align-items: center; gap: 20px; }
 .game-feature-cs2 { grid-row: span 2; grid-template-columns: minmax(160px, 47%) minmax(0, 1fr); gap: clamp(20px, 3vw, 42px); }
 .game-poster { position: relative; overflow: hidden; isolation: isolate; aspect-ratio: 2 / 3; background: #303030; border-radius: 4px; }
+.game-feature-cs2 .game-poster { align-self: stretch; }
 .game-poster :is(img, video) { width: 100%; height: 100%; object-fit: cover; }
 .game-poster-preview { position: absolute; inset: 0; }
+.game-feature-cs2 .game-poster-preview { transform: scale(1.06); transform-origin: right center; }
 .game-feature-copy { display: grid; justify-items: start; gap: 10px; min-width: 0; }
 .game-feature-copy h2 { font-size: clamp(1.3rem, 2.3vw, 1.65rem); }
 .game-feature-cs2 h2 { font-size: clamp(2rem, 4.1vw, 3.85rem); line-height: .98; }
@@ -419,6 +422,11 @@ html[data-theme="light"] .arena-home {
 @media (max-width: 380px) {
   .arena-home .header-inner:has(.home-account-menu) { flex-wrap: wrap; padding-block: 6px; }
 }
+@media (max-width: 360px) {
+  .arena-home .header-inner { gap: 4px; }
+  .home-nav { gap: 7px; margin-left: 0; }
+  .arena-home .header-actions > a { padding-inline: 6px; }
+}
 
 /* Keep the full supplied artwork visible in portrait tournament covers. */
 .tournament-card .tournament-cover,
@@ -426,13 +434,6 @@ html[data-theme="light"] .arena-home {
   aspect-ratio: 424 / 640;
 }
 .tournament-cover .tournament-poster { object-fit: contain; object-position: center; }
-.detail-hero .tournament-cover:has(.tournament-poster) {
-  width: min(100%, 206px);
-  height: auto;
-  min-height: 0;
-  max-height: none;
-  justify-self: end;
-}
 .game-poster { aspect-ratio: 424 / 640; }
 
 @media (min-width: 1000px) {
