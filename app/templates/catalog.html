@@ -1,29 +1,48 @@
 {% extends "base.html" %}
-{% from "_ui.html" import status, icon, date, empty with context %}
+{% from "_ui.html" import status, icon, date, empty, tournament_art with context %}
 {% set archived = history|default(request.path == '/history') %}
 {% block title %}{{ 'История' if archived else 'Турниры' }}{% endblock %}
 {% block content %}
 <div class="wrap page {% if not archived %}catalog-page{% endif %}">
-  {% if archived %}
-  <div class="page-head"><div><h1>История турниров</h1><p>Итоговые сетки и результаты завершённых соревнований.</p></div></div>
-  {% else %}
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="hero-copy">
-      <p class="hero-tag"><span></span> Киберспортивные соревнования</p>
-      <h1 id="hero-title">Время выйти<br> <em>на арену.</em></h1>
-      <p>Выбирайте турниры, собирайте команду и следите за результатами матчей.</p>
-      <a class="button hero-button" href="#tournaments">Смотреть турниры {{ icon('arrow') }}</a>
-    </div>
-    <div class="hero-art" aria-hidden="true"></div>
-  </section>
+  {% if not archived %}
+    {% set features = [
+      ('cs2', ['counter-strike 2', 'cs2'], 'Counter-Strike 2', 'Соберите пятёрку и найдите турнир для своей команды.'),
+      ('valorant', ['valorant'], 'VALORANT', 'Командные турниры для тех, кто играет на тактике.'),
+      ('dota', ['dota 2'], 'Dota 2', 'Выберите турнир и сыграйте своим составом.')
+    ] %}
+    {% set featured = namespace(items=[]) %}
+    {% for slug, aliases, title, blurb in features %}
+      {% for discipline in games if discipline.name|lower in aliases %}
+        {% set featured.items = featured.items + [(discipline, slug, title, blurb)] %}
+      {% endfor %}
+    {% endfor %}
+    {% if featured.items %}
+    <section class="game-showcase" aria-label="Подборки по играм">
+      {% for discipline, slug, title, blurb in featured.items %}
+      <article class="game-feature game-feature-{{ slug }}">
+        <div class="game-poster">
+          <img src="{{ url_for('static', filename='art/feature-' ~ slug ~ '.webp') }}" alt="" width="424" height="640">
+        </div>
+        <div class="game-feature-copy">
+          <h2>{{ title }}</h2>
+          <p>{{ blurb }}</p>
+          <a class="button{% if slug != 'cs2' %} button-secondary{% endif %}" href="{{ url_for('public.index', game=discipline.id, _anchor='tournaments') }}" aria-label="Смотреть турниры по {{ discipline.name }}">Смотреть турниры</a>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
   {% endif %}
-  <section class="section" id="tournaments" aria-labelledby="catalog-title">
-    <div class="section-head"><h2 id="catalog-title">{{ 'Завершённые соревнования' if archived else 'Активные турниры' }}</h2></div>
+  <section id="tournaments" aria-labelledby="catalog-title">
+    <div class="catalog-heading">
+      <h1 id="catalog-title">{{ 'История турниров' if archived else 'Турниры' }}</h1>
+      {% if total is defined %}<span class="catalog-count" aria-label="Найдено турниров">{{ total }}</span>{% endif %}
+    </div>
     {% set chosen_game = game|default(request.args.get('game', 0))|string %}
     {% set query = q|default(request.args.get('q', '')) %}
     {% set sorting = sort|default(request.args.get('sort', 'new_desc')) %}
     <form class="filters" method="get" action="{{ url_for(request.endpoint) }}">
-      {% if not archived %}<label class="field filter-search"><span>Поиск</span><span class="search-field">{{ icon('search') }}<input type="search" name="q" value="{{ query }}" placeholder="Название или описание"></span></label>{% endif %}
+      {% if not archived %}<label class="field filter-search"><span>Поиск</span><span class="search-field">{{ icon('search') }}<input type="search" name="q" value="{{ query }}" placeholder="Найти турнир"></span></label>{% endif %}
       <label class="field"><span>Дисциплина</span>
         <select name="game"><option value="0">Все игры</option>
         {% for item in games %}<option value="{{ item.id }}"{% if chosen_game == item.id|string %} selected{% endif %}>{{ item.name }}</option>{% endfor %}
@@ -36,20 +55,21 @@
         {% endfor %}
         </select>
       </label>{% endif %}
-      <button class="button button-secondary" type="submit">Применить</button>
+      <button class="button" type="submit">Применить</button>
     </form>
     {% if tournaments %}
     <div class="cards tournament-cards">
       {% for t in tournaments %}
       <article class="card tournament-card">
         <a class="tournament-cover cover-{{ t.game_id|default(loop.index)|int % 4 }}" tabindex="-1" aria-hidden="true" href="/tournaments/{{ t.id }}">
-          {% if t.banner %}<img src="{{ media_url(t.banner) }}" alt="" loading="lazy">{% else %}{{ icon('logo') }}{% endif %}
+          {{ tournament_art(t, lazy=true) }}
         </a>
         <div class="tournament-body">
-          <div class="cluster tournament-tags"><span class="game-label">{{ t.game_name }}</span>{{ status(t.status) }}</div>
+          <div class="game-label">{{ t.game_name }}</div>
           <h3><a class="tournament-link" href="/tournaments/{{ t.id }}">{{ t.title }}</a></h3>
           <p class="tournament-dates">{{ icon('calendar') }} {{ date(t.start_date) }}{% if t.end_date %} – {{ date(t.end_date) }}{% endif %}</p>
-          <span class="tournament-more" aria-hidden="true">Подробнее {{ icon('arrow') }}</span>
+          <div class="tournament-tags">{{ status(t.status) }}</div>
+          <span class="tournament-more" aria-hidden="true">Подробнее</span>
         </div>
       </article>
       {% endfor %}

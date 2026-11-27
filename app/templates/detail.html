@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon, status, format_label, date, datetime, empty, post_button, csrf with context %}
+{% from "_ui.html" import icon, status, format_label, date, datetime, empty, post_button, csrf, tournament_art with context %}
 {% set t = tournament %}
 {% block title %}{{ t.title }}{% endblock %}
 {% block content %}
@@ -11,7 +11,7 @@
       <h1>{{ t.title }}</h1>
       <p class="muted">{{ date(t.start_date) }} – {{ date(t.end_date) }}</p>
     </div>
-    <div class="tournament-cover cover-{{ t.game_id|int % 4 }}" aria-hidden="true">{% if t.banner %}<img src="{{ media_url(t.banner) }}" alt="">{% else %}{{ icon('logo') }}{% endif %}</div>
+    <div class="tournament-cover cover-{{ t.game_id|int % 4 }}" aria-hidden="true">{{ tournament_art(t) }}</div>
   </section>
   {% if is_owner %}
   <section class="panel section stack" aria-labelledby="manage-heading">
