@@ -1,6 +1,23 @@
 {% from "_ui.html" import icon, csrf with context %}
+{% set is_home = request.endpoint == 'public.index' %}
+{% macro navigation() %}
+<nav class="nav" aria-label="Главное меню">
+        <a href="/" {% if request.path == '/' %}aria-current="page"{% endif %}>{{ icon('events') }}<span>Турниры</span></a>
+        <a href="/history" {% if request.path == '/history' %}aria-current="page"{% endif %}>{{ icon('history') }}<span>История</span></a>
+        {% if g.user and g.user.role == 'player' %}
+          <a href="/my/tournaments" {% if request.path == '/my/tournaments' %}aria-current="page"{% endif %}>{{ icon('events') }}<span>Мои турниры</span></a>
+          <a href="/my/matches" {% if request.path == '/my/matches' %}aria-current="page"{% endif %}>{{ icon('matches') }}<span>Матчи</span></a>
+          <a href="/team" {% if request.path.startswith('/team') %}aria-current="page"{% endif %}>{{ icon('team') }}<span>Команда</span></a>
+        {% elif g.user and g.user.role == 'organizer' %}
+          <a href="/organizer/tournaments" {% if request.path.startswith('/organizer') %}aria-current="page"{% endif %}>{{ icon('manage') }}<span>Управление</span></a>
+        {% elif g.user and g.user.role == 'admin' %}
+          <a href="/admin/users" {% if request.path.startswith('/admin/users') %}aria-current="page"{% endif %}>{{ icon('team') }}<span>Пользователи</span></a>
+          <a href="/admin/games" {% if request.path.startswith('/admin/games') %}aria-current="page"{% endif %}>{{ icon('games') }}<span>Игры</span></a>
+        {% endif %}
+      </nav>
+{% endmacro %}
 <!doctype html>
-<html lang="ru">
+<html lang="ru"{% if is_home and not g.user %} data-theme="light"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,27 +26,25 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='arena.css') }}">
   <script src="{{ url_for('static', filename='arena.js') }}" defer></script>
 </head>
-<body>
+<body{% if is_home %} class="arena-home"{% endif %}>
   <a class="skip-link button" href="#main">К содержимому</a>
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="/" aria-label="Арена — главная">
         <span class="brand-symbol">{{ icon('brand') }}</span>АРЕНА
       </a>
-      <nav class="nav" aria-label="Главное меню">
-        <a href="/" {% if request.path == '/' %}aria-current="page"{% endif %}>Турниры</a>
-        <a href="/history" {% if request.path == '/history' %}aria-current="page"{% endif %}>История</a>
-        {% if g.user and g.user.role == 'player' %}
-          <a href="/my/tournaments" {% if request.path == '/my/tournaments' %}aria-current="page"{% endif %}>Мои турниры</a>
-          <a href="/my/matches" {% if request.path == '/my/matches' %}aria-current="page"{% endif %}>Матчи</a>
-          <a href="/team" {% if request.path.startswith('/team') %}aria-current="page"{% endif %}>Команда</a>
-        {% elif g.user and g.user.role == 'organizer' %}
-          <a href="/organizer/tournaments" {% if request.path.startswith('/organizer') %}aria-current="page"{% endif %}>Управление</a>
-        {% elif g.user and g.user.role == 'admin' %}
-          <a href="/admin/users" {% if request.path.startswith('/admin/users') %}aria-current="page"{% endif %}>Пользователи</a>
-          <a href="/admin/games" {% if request.path.startswith('/admin/games') %}aria-current="page"{% endif %}>Игры</a>
-        {% endif %}
+      {% if is_home %}
+      <nav class="home-nav" aria-label="Главное меню">
+        <a href="{{ url_for('public.index') }}" aria-current="page">Турниры</a>
+        <a href="{{ url_for('public.history') }}">История</a>
       </nav>
+      {% endif %}
+      {% if not is_home or g.user %}
+      <details class="mobile-menu{% if is_home %} home-account-menu{% endif %}">
+        <summary class="icon-button" aria-label="Разделы">{{ icon('menu') }}</summary>
+        {{ navigation() }}
+      </details>
+      {% endif %}
       <div class="header-actions">
         <button class="icon-button" type="button" data-theme-toggle title="Переключить цветовую тему" aria-label="Светлая тема" aria-pressed="false">
           {{ icon('sun') }}{{ icon('moon') }}
@@ -39,12 +54,15 @@
           {% else %}<span class="user-label">{{ g.user.nickname }}</span>{% endif %}
           <form action="/logout" method="post">{{ csrf() }}<button class="button button-secondary" type="submit">Выйти</button></form>
         {% else %}
-          <a class="button button-secondary" href="/login">Войти</a>
-          <a class="button header-signup" href="/register">Регистрация</a>
+          <a class="button{% if not is_home %} button-secondary{% endif %}" href="/login">Войти</a>
+          {% if not is_home %}<a class="button header-signup" href="/register">Регистрация</a>{% endif %}
         {% endif %}
       </div>
     </div>
   </header>
+  <div class="site-layout">
+    {% if not is_home %}<aside class="site-sidebar">{{ navigation() }}</aside>{% endif %}
+    <div class="site-content">
   <main id="main" class="site-main">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -58,5 +76,7 @@
   <footer class="site-footer">
     <div class="wrap footer-inner"><a href="/" class="footer-brand cluster"><span class="brand-symbol">{{ icon('brand') }}</span>АРЕНА</a><span class="quiet">Платформа киберспортивных турниров</span></div>
   </footer>
+    </div>
+  </div>
 </body>
 </html>
