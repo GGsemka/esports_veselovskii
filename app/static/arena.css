@@ -220,20 +220,23 @@ html[data-theme="light"] .tournament-card-footer .badge.published { color: #9c36
 .tournament-card:hover .tournament-more,
 .tournament-card:focus-within .tournament-more { text-decoration: underline; text-underline-offset: 3px; }
 .tournament-more { padding: 5px 8px; margin-inline-end: -8px; border-radius: var(--radius); }
-.tournament-card:focus-within .tournament-more { background: var(--accent); color: var(--accent-ink); }
+.tournament-card:focus-within .tournament-more,
+.game-feature:focus-within .button { background: var(--accent); color: var(--accent-ink); }
 
 @media (hover: hover) and (pointer: fine) {
-  .tournament-card:hover {
+  .tournament-card:hover, .game-feature:hover {
     background: color-mix(in srgb, var(--surface) 86%, white);
     border-color: color-mix(in srgb, var(--line) 72%, white);
   }
-  .tournament-card:hover .tournament-cover img { filter: brightness(1.13) contrast(.87); }
-  .tournament-card:hover .tournament-more { background: var(--accent); color: var(--accent-ink); text-decoration: none; }
+  .tournament-card:hover .tournament-cover img,
+  .game-feature:hover .game-poster img { filter: brightness(1.13) contrast(.87); }
+  .tournament-card:hover .tournament-more,
+  .game-feature:hover .button { background: var(--accent); color: var(--accent-ink); text-decoration: none; }
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .tournament-card { transition: background-color 260ms ease, border-color 260ms ease; }
-  .tournament-card .tournament-cover img { transition: filter 260ms ease; }
-  .tournament-card .tournament-more { transition: background-color 260ms ease, color 260ms ease; }
+  .tournament-card, .game-feature { transition: background-color 260ms ease, border-color 260ms ease; }
+  .tournament-card .tournament-cover img, .game-feature .game-poster img { transition: filter 260ms ease; }
+  .tournament-card .tournament-more, .game-feature .button { transition: background-color 260ms ease, color 260ms ease; }
 }
 
 .pagination { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; margin-top: 20px; font-family: var(--tech); }
@@ -346,7 +349,7 @@ html[data-theme="light"] .arena-home {
   margin-bottom: 26px;
   border-bottom: 1px solid var(--line);
 }
-.game-feature { display: grid; grid-template-columns: 102px minmax(0, 1fr); align-items: center; gap: 20px; }
+.game-feature { display: grid; border-radius: var(--radius); grid-template-columns: 102px minmax(0, 1fr); align-items: center; gap: 20px; }
 .game-feature-cs2 { grid-row: span 2; grid-template-columns: minmax(160px, 47%) minmax(0, 1fr); gap: clamp(20px, 3vw, 42px); }
 .game-poster { position: relative; overflow: hidden; isolation: isolate; aspect-ratio: 2 / 3; background: #303030; border-radius: 4px; }
 .game-poster img { width: 100%; height: 100%; object-fit: cover; }
