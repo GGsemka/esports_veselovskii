@@ -229,7 +229,7 @@ html[data-theme="light"] .tournament-card-footer .badge.published { color: #9c36
     border-color: color-mix(in srgb, var(--line) 72%, white);
   }
   .tournament-card:hover .tournament-cover img,
-  .game-feature:hover .game-poster img { filter: brightness(1.13) contrast(.87); }
+  .game-feature:hover .game-poster img:not(.game-poster-preview) { filter: brightness(1.13) contrast(.87); }
   .tournament-card:hover .tournament-more,
   .game-feature:hover .button { background: var(--accent); color: var(--accent-ink); text-decoration: none; }
 }
@@ -349,10 +349,11 @@ html[data-theme="light"] .arena-home {
   margin-bottom: 26px;
   border-bottom: 1px solid var(--line);
 }
-.game-feature { display: grid; border-radius: var(--radius); grid-template-columns: 102px minmax(0, 1fr); align-items: center; gap: 20px; }
+.game-feature { display: grid; border-radius: var(--radius); grid-template-columns: minmax(125px, 37%) minmax(0, 1fr); align-items: center; gap: 20px; }
 .game-feature-cs2 { grid-row: span 2; grid-template-columns: minmax(160px, 47%) minmax(0, 1fr); gap: clamp(20px, 3vw, 42px); }
 .game-poster { position: relative; overflow: hidden; isolation: isolate; aspect-ratio: 2 / 3; background: #303030; border-radius: 4px; }
 .game-poster img { width: 100%; height: 100%; object-fit: cover; }
+.game-poster-preview { position: absolute; inset: 0; }
 .game-feature-copy { display: grid; justify-items: start; gap: 10px; min-width: 0; }
 .game-feature-copy h2 { font-size: clamp(1.3rem, 2.3vw, 1.65rem); }
 .game-feature-cs2 h2 { font-size: clamp(2rem, 4.1vw, 3.85rem); line-height: .98; }
@@ -364,7 +365,7 @@ html[data-theme="light"] .arena-home {
 
 @media (max-width: 850px) {
   .game-showcase { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; gap: 16px; }
-  .game-feature { grid-row: auto; grid-template-columns: 90px minmax(0, 1fr); gap: 16px; }
+  .game-feature { grid-row: auto; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; }
   .game-feature-cs2 { grid-template-columns: minmax(118px, 36%) minmax(0, 1fr); }
   .game-feature + .game-feature { padding-top: 16px; border-top: 1px solid var(--line); }
 }
