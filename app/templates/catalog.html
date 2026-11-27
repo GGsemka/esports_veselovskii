@@ -28,7 +28,7 @@
         <div class="game-feature-copy">
           <h2>{{ title }}</h2>
           <p>{{ blurb }}</p>
-          <a class="button{% if slug != 'cs2' %} button-secondary{% endif %}" href="{{ url_for('public.index', game=discipline.id, _anchor='tournaments') }}" aria-label="Смотреть турниры по {{ discipline.name }}">Смотреть турниры</a>
+          <a class="button button-secondary" href="{{ url_for('public.index', game=discipline.id, _anchor='tournaments') }}" aria-label="Смотреть турниры по {{ discipline.name }}">Смотреть турниры</a>
         </div>
       </article>
       {% endfor %}
@@ -38,12 +38,12 @@
   <section id="tournaments" aria-labelledby="catalog-title">
     <div class="catalog-heading">
       <h1 id="catalog-title">{{ 'История турниров' if archived else 'Турниры' }}</h1>
-      {% if total is defined %}<span class="catalog-count" aria-label="Найдено турниров">{{ total }}</span>{% endif %}
+      {% if total is defined %}<span class="catalog-count" role="status" aria-label="Найдено турниров">{{ total }}</span>{% endif %}
     </div>
     {% set chosen_game = game|default(request.args.get('game', 0))|string %}
     {% set query = q|default(request.args.get('q', '')) %}
     {% set sorting = sort|default(request.args.get('sort', 'new_desc')) %}
-    <form class="filters" method="get" action="{{ url_for(request.endpoint) }}">
+    <form class="filters" data-catalog-filters method="get" action="{{ url_for(request.endpoint) }}">
       {% if not archived %}<label class="field filter-search"><span>Поиск</span><span class="search-field">{{ icon('search') }}<input type="search" name="q" value="{{ query }}" placeholder="Найти турнир"></span></label>{% endif %}
       <label class="field"><span>Дисциплина</span>
         <select id="game-filter" name="game"><option value="0">Все игры</option>
@@ -57,8 +57,9 @@
         {% endfor %}
         </select>
       </label>{% endif %}
-      <button class="button" type="submit">Применить</button>
+      <noscript><button class="button" type="submit">Показать турниры</button></noscript>
     </form>
+    <div id="catalog-results">
     {% if tournaments %}
     <div class="cards tournament-cards">
       {% for t in tournaments %}
@@ -70,7 +71,9 @@
           <div class="game-label">{{ t.game_name }}</div>
           <h3><a class="tournament-link" href="/tournaments/{{ t.id }}">{{ t.title }}</a></h3>
           <p class="tournament-dates">
-            {% if t.start_date.strftime is defined and t.end_date.strftime is defined and
+            {% if archived and t.completed_at %}
+              {{ date(t.completed_at) }}
+            {% elif t.start_date.strftime is defined and t.end_date.strftime is defined and
                   t.start_date.year == t.end_date.year and t.start_date.month == t.end_date.month %}
               {% set months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
                                'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'] %}
@@ -104,12 +107,7 @@
       {% if current < page_count %}<a aria-label="Следующая страница" href="{{ page_href(current + 1) }}">›</a>{% endif %}
     </nav>
     {% endif %}
+    </div>
   </section>
 </div>
-{% endblock %}
-
-{% block footer_games %}
-  {% for discipline in games[:4] %}
-    <li><a href="{{ url_for('public.index', game=discipline.id, _anchor='tournaments') }}">{{ discipline.name }}</a></li>
-  {% endfor %}
 {% endblock %}

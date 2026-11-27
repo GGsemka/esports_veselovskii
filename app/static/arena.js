@@ -15,6 +15,71 @@
     } catch {}
   });
 
+  const filters = document.querySelector('[data-catalog-filters]');
+  if (filters) {
+    let searchDelay;
+    let pending;
+    let displayedQuery = window.location.search;
+    const results = document.querySelector('#catalog-results');
+    const count = document.querySelector('.catalog-count');
+
+    const refreshCatalog = async (url, fromHistory = false) => {
+      const request = new AbortController();
+      pending = request;
+      try {
+        const response = await fetch(url, { signal: request.signal });
+        if (!response.ok) throw new Error('Catalog request failed');
+        const documentUpdate = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const nextResults = documentUpdate.querySelector('#catalog-results');
+        if (!nextResults) throw new Error('Catalog results are missing');
+        if (request.signal.aborted) return;
+
+        results.replaceChildren(...nextResults.childNodes);
+        if (count) count.textContent = documentUpdate.querySelector('.catalog-count')?.textContent ?? '';
+        if (fromHistory) {
+          for (const field of documentUpdate.querySelector('[data-catalog-filters]').elements) {
+            if (field.name) filters.elements.namedItem(field.name).value = field.value;
+          }
+        } else if (url.href !== window.location.href) {
+          history.pushState(null, '', url);
+        }
+        displayedQuery = url.search;
+      } catch {
+        if (request.signal.aborted) return;
+        if (fromHistory) window.location.reload();
+        else window.location.assign(url);
+      }
+    };
+
+    const queueFilters = delay => {
+      clearTimeout(searchDelay);
+      pending?.abort();
+      searchDelay = setTimeout(() => {
+        const url = new URL(filters.action);
+        url.search = new URLSearchParams(new FormData(filters));
+        url.hash = window.location.hash;
+        refreshCatalog(url);
+      }, delay);
+    };
+
+    filters.addEventListener('submit', event => {
+      event.preventDefault();
+      queueFilters(0);
+    });
+    filters.addEventListener('change', event => {
+      if (event.target.matches('select')) queueFilters(0);
+    });
+    filters.addEventListener('input', event => {
+      if (event.target.matches('input[type="search"]') && !event.isComposing) queueFilters(250);
+    });
+    window.addEventListener('popstate', () => {
+      if (displayedQuery === window.location.search) return;
+      clearTimeout(searchDelay);
+      pending?.abort();
+      refreshCatalog(new URL(window.location.href), true);
+    });
+  }
+
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   for (const poster of document.querySelectorAll('[data-preview-video]')) {
     const card = poster.closest('.game-feature');
