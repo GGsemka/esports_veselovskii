@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
     end_date DATE NOT NULL,
     banner VARCHAR(255) NULL,
     results_snapshot JSON NULL,
+    completed_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE RESTRICT,
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
     INDEX idx_tournaments_status_created (status, created_at, id),
     INDEX idx_tournaments_game_status (game_id, status, created_at),
     INDEX idx_tournaments_created (created_at, id),
-    INDEX idx_tournaments_history (status, updated_at, id)
+    INDEX idx_tournaments_history (status, completed_at, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS registrations (

@@ -10,7 +10,7 @@ Flask 3 создаётся фабрикой приложения. Blueprints о�
 | games | id, name, team_size_min, team_size_max, format (team/solo), created_at |
 | teams | id, name, captain_id → users, game_id → games, logo, created_at |
 | team_members | id, team_id, user_id, role (captain/player), joined_at. У пользователя один состав. Создание команды и запись капитана атомарны. |
-| tournaments | id, title, description, game_id, organizer_id, format (single_elimination/round_robin), registration_type (team/solo), status, max_participants, start_date, end_date, banner, results_snapshot (JSON), created_at, updated_at |
+| tournaments | id, title, description, game_id, organizer_id, format (single_elimination/round_robin), registration_type (team/solo), status, max_participants, start_date, end_date, banner, results_snapshot (JSON), completed_at, created_at, updated_at |
 | registrations | id, tournament_id, team_id или user_id, status (pending/approved/rejected/withdrawn), rejection_reason, created_at, updated_at |
 | matches | id, tournament_id, round_number, match_number, registration1_id, registration2_id, winner_registration_id, score1, score2, status (scheduled/played/walkover/cancelled), next_match_id, scheduled_at, created_at |
 | chat_threads | id, tournament_id, participant_user_id, created_at. Уникальная пара турнира и представителя. |
@@ -25,7 +25,7 @@ Flask 3 создаётся фабрикой приложения. Blueprints о�
 | Метод | URL | Кто имеет доступ и что получает |
 |---|---|---|
 | GET | `/` | Все. Каталог, параметры q, game, sort, page. |
-| GET | `/history` | Все. Завершённые турниры, параметры game, page. |
+| GET | `/history` | Все. Завершённые турниры, сортировка по completed_at, параметры game, page. |
 | GET | `/tournaments/<id>` | Все для published/in_progress/completed. Для draft/cancelled только организатор-владелец. |
 | GET | `/uploads/<filename>`, `/static/<path>` | Все. Файл изображения или ресурс приложения. |
 | GET, POST | `/register`, `/login` | Гость. Уже вошедший пользователь перенаправляется на главную. |
@@ -40,11 +40,13 @@ Flask 3 создаётся фабрикой приложения. Blueprints о�
 | GET, POST | `/tournaments/new` | Организатор. Создание черновика. |
 | GET, POST | `/tournaments/<id>/edit` | Организатор своего черновика. |
 | POST | `/tournaments/<id>/publish`, `/tournaments/<id>/unpublish` | Организатор своего турнира. Публикация заполненного черновика с баннером, снятие публикации до первой заявки. |
-| POST | `/tournaments/<id>/apply` | Игрок для solo, капитан зарегистрированной в нужной игре команды для team. Набор открыт. |
+| POST | `/tournaments/<id>/delete` | Организатор своего черновика. Загруженный баннер удаляется после подтверждения транзакции. |
+| POST | `/tournaments/<id>/cancel` | Организатор своего черновика, опубликованного или действующего турнира. Запланированные матчи получают статус cancelled, сыгранные результаты сохраняются. |
+| POST | `/tournaments/<id>/apply` | Игрок без команды по этой дисциплине для solo, капитан команды нужной дисциплины для team. Набор открыт и есть места по числу одобренных заявок. |
 | POST | `/registrations/<id>/withdraw` | Владелец одиночной заявки или капитан команды. Заявка pending, турнир published. |
 | GET | `/tournaments/<id>/registrations` | Организатор своего турнира. Очередь и решения. |
 | POST | `/registrations/<id>/approve`, `/registrations/<id>/reject` | Организатор турнира заявки. Модерация pending при открытой регистрации. |
-| POST | `/tournaments/<id>/generate-bracket` | Организатор своего турнира. По одобренным заявкам. |
+| POST | `/tournaments/<id>/generate-bracket` | Организатор своего турнира. По одобренным заявкам. Даты раундов распределяются внутри интервала турнира, единственный раунд назначается на дату начала. |
 | POST | `/matches/<id>/result` | Организатор турнира этого матча. Режим played, поля score1/score2, либо режим walkover с winner_registration_id. |
 | POST | `/tournaments/<id>/finish` | Организатор своего турнира. Все матчи имеют конечный результат. |
 | GET | `/tournaments/<id>/chats` | Организатор своего турнира. Список каналов. |
@@ -58,7 +60,7 @@ Flask 3 создаётся фабрикой приложения. Blueprints о�
 
 ## Снимок результатов
 
-Поле `tournaments.results_snapshot` сохраняется вместе со статусом completed в транзакции завершения турнира. В объекте JSON два массива.
+Поле `tournaments.results_snapshot` сохраняется вместе со статусом completed и временем completed_at в транзакции завершения турнира. В объекте JSON два массива.
 
 | Ключ | Значение |
 |---|---|

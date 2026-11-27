@@ -1,17 +1,20 @@
 {% extends "base.html" %}
-{% from "_ui.html" import icon, status, format_label, date, datetime, empty, post_button, csrf, tournament_art with context %}
+{% from "_ui.html" import icon, status, format_label, date, match_date, empty, post_button, csrf, tournament_art with context %}
 {% set t = tournament %}
 {% block title %}{{ t.title }}{% endblock %}
 {% block content %}
-<div class="wrap page">
-  <div class="breadcrumb"><a href="{{ '/history' if t.status == 'completed' else '/' }}">{{ 'История' if t.status == 'completed' else 'Турниры' }}</a><span>›</span><span>{{ t.title }}</span></div>
-  <section class="detail-hero">
+<div class="wrap page catalog-page">
+  <nav class="breadcrumb" aria-label="Положение в каталоге">
+    <a href="{{ url_for('public.history') if t.status == 'completed' else url_for('public.index') }}">{{ 'История' if t.status == 'completed' else 'Турниры' }}</a>
+    <span aria-hidden="true">›</span><span aria-current="page">{{ t.title }}</span>
+  </nav>
+  <section class="panel detail-hero" aria-labelledby="tournament-title">
+    <div class="tournament-cover cover-{{ t.game_id|int % 4 }}" aria-hidden="true">{{ tournament_art(t) }}</div>
     <div class="detail-heading">
       <div class="cluster"><span class="game-label">{{ t.game_name }}</span>{{ status(t.status) }}</div>
-      <h1>{{ t.title }}</h1>
-      <p class="muted">{{ date(t.start_date) }} – {{ date(t.end_date) }}</p>
+      <h1 id="tournament-title">{{ t.title }}</h1>
+      <p class="tournament-dates">{{ date(t.start_date) }} – {{ date(t.end_date) }}</p>
     </div>
-    <div class="tournament-cover cover-{{ t.game_id|int % 4 }}" aria-hidden="true">{{ tournament_art(t) }}</div>
   </section>
   {% if is_owner %}
   <section class="panel section stack" aria-labelledby="manage-heading">
@@ -19,11 +22,15 @@
     <div class="cluster">
       {% if t.status == 'draft' %}
         <a class="button button-secondary" href="/tournaments/{{ t.id }}/edit">Редактировать</a>
+        {{ post_button(url_for('organizer.delete', tournament_id=t.id), 'Удалить черновик', 'button-secondary', 'Удалить этот черновик?') }}
         {% if t.banner %}{{ post_button('/tournaments/' ~ t.id ~ '/publish', 'Опубликовать') }}
         {% else %}<span class="muted quiet">Загрузите баннер для публикации.</span>{% endif %}
       {% endif %}
       {% if t.status in ['published', 'in_progress'] %}<a class="button button-secondary" href="/tournaments/{{ t.id }}/registrations">Заявки</a>{% endif %}
-      {% if t.status != 'cancelled' %}<a class="button button-secondary" href="/tournaments/{{ t.id }}/chats">Чаты</a>{% endif %}
+      <a class="button button-secondary" href="/tournaments/{{ t.id }}/chats">Чаты</a>
+      {% if t.status in ['draft', 'published', 'in_progress'] %}
+        {{ post_button(url_for('organizer.cancel', tournament_id=t.id), 'Отменить турнир', 'button-secondary', 'Отменить этот турнир?') }}
+      {% endif %}
       {% if t.status == 'published' and not has_registrations %}{{ post_button('/tournaments/' ~ t.id ~ '/unpublish', 'Отменить публикацию', 'button-secondary') }}{% endif %}
       {% if t.status in ['draft', 'published'] and t.approved_count|default(0) >= 2 %}
         {{ post_button(url_for('competition.generate', tournament_id=t.id), 'Сгенерировать сетку', '', 'Создать сетку и начать турнир?') }}
@@ -45,9 +52,11 @@
         <div class="stat"><dt>Организатор</dt><dd>{{ t.organizer_name }}</dd></div>
         <div class="stat"><dt>Места заняты</dt><dd>{{ t.approved_count|default(0) }} / {{ t.max_participants }}</dd></div>
       </dl>
-      {% if registration or can_apply or thread_id or (not g.user and t.status == 'published') %}
+      {% set full = t.status == 'published' and t.approved_count >= t.max_participants %}
+      {% if registration or can_apply or thread_id or full or (not g.user and t.status == 'published') %}
       <div class="panel stack">
         <h3>Участие</h3>
+        {% if full %}<p class="muted quiet">Все места заняты.</p>{% endif %}
         {% if registration %}
           <div>{{ status(registration.status) }}</div>
           {% if registration.rejection_reason %}<p class="quiet muted">{{ registration.rejection_reason }}</p>{% endif %}
@@ -58,11 +67,15 @@
         <div class="cluster">
           {% if can_apply %}{{ post_button('/tournaments/' ~ t.id ~ '/apply', 'Подать заявку') }}{% endif %}
           {% if thread_id %}<a class="button button-secondary" href="/chats/{{ thread_id }}">Чат с организатором</a>{% endif %}
-          {% if not g.user and t.status == 'published' %}<a class="button button-secondary" href="/login">Войти для участия</a>{% endif %}
+          {% if not g.user and t.status == 'published' and not full %}<a class="button button-secondary" href="/login">Войти для участия</a>{% endif %}
         </div>
       </div>
-      {% elif t.status == 'published' and g.user and g.user.role == 'player' and t.registration_type == 'team' %}
-      <div class="panel stack"><h3>Участие</h3><p class="muted quiet">Заявку подаёт капитан команды по этой дисциплине.</p><a class="text-link quiet" href="/team">Перейти к команде</a></div>
+      {% elif t.status == 'published' and g.user and g.user.role == 'player' %}
+      <div class="panel stack">
+        <h3>Участие</h3>
+        <p class="muted quiet">{{ 'Заявку подаёт капитан команды по этой дисциплине.' if t.registration_type == 'team' else 'Заявки принимаются от игроков без команды по этой дисциплине.' }}</p>
+        <a class="text-link quiet" href="/team">Перейти к команде</a>
+      </div>
       {% endif %}
     </aside>
   </div>
@@ -74,6 +87,7 @@
       <div class="bracket-tree"{% if t.format == 'single_elimination' %} data-bracket-tree{% endif %}>
         {% if t.format == 'single_elimination' %}<svg class="bracket-wires" aria-hidden="true"></svg>{% endif %}
         {% for round in rounds %}
+        {% set planned_date = round_dates[loop.index0] %}
         <div class="bracket-round">
           <h3 class="round-title">{{ 'Финал' if loop.last and t.format == 'single_elimination' else 'Раунд ' ~ loop.index }}</h3>
           <div class="round-matches">
@@ -82,7 +96,7 @@
               <div class="match-meta"><span>Матч {{ m.match_number }}</span>{{ status(m.status) }}</div>
               <div class="match-side{% if m.registration1_id and m.winner_registration_id == m.registration1_id %} winner{% endif %}"><span>{{ m.name1 or ('Без соперника' if m.status == 'walkover' else 'Ожидается') }}</span><strong class="mono">{{ m.score1 if m.score1 is not none else '—' }}</strong></div>
               <div class="match-side{% if m.registration2_id and m.winner_registration_id == m.registration2_id %} winner{% endif %}"><span>{{ m.name2 or ('Без соперника' if m.status == 'walkover' else 'Ожидается') }}</span><strong class="mono">{{ m.score2 if m.score2 is not none else '—' }}</strong></div>
-              {% if m.scheduled_at %}<div class="match-meta"><time>{{ datetime(m.scheduled_at) }}</time></div>{% endif %}
+              <div class="match-meta"><time>{{ match_date(m.scheduled_at or planned_date) }}</time></div>
               {% if is_owner and t.status == 'in_progress' and m.status == 'scheduled' and m.registration1_id and m.registration2_id %}
               <details class="match-editor"><summary>Внести результат</summary>
                 <form class="fields" action="{{ url_for('competition.result', match_id=m.id) }}" method="post" {% if t.format == 'single_elimination' %}data-no-tie{% endif %}>

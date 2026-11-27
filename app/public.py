@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, current_app, g, render_template, request
 
 from . import db
+from .brackets import round_dates
 from .competition import bracket_context
 
 bp = Blueprint("public", __name__)
@@ -10,7 +11,8 @@ SORTS = {
     "title_asc": "t.title ASC,t.id ASC",
     "title_desc": "t.title DESC,t.id DESC",
 }
-CARD = """SELECT t.id,t.title,t.description,t.status,t.start_date,t.end_date,t.created_at,t.updated_at,
+CARD = """SELECT t.id,t.title,t.description,t.status,t.start_date,t.end_date,
+    t.completed_at,t.created_at,t.updated_at,
     t.game_id,t.banner,t.max_participants,t.format,t.registration_type,g.name AS game_name,
     (SELECT COUNT(*) FROM registrations r WHERE r.tournament_id=t.id
      AND r.status='approved') AS approved_count FROM tournaments t
@@ -38,7 +40,7 @@ def catalog(history):
     sort = request.args.get("sort", "new_desc")
     if sort not in SORTS:
         sort = "new_desc"
-    order = "t.updated_at DESC,t.id DESC" if history else SORTS[sort]
+    order = "t.completed_at DESC,t.id DESC" if history else SORTS[sort]
     rows = db.all(
         CARD + where + " ORDER BY " + order + " LIMIT %s OFFSET %s", (*args, size, (page - 1) * size)
     )
@@ -111,12 +113,15 @@ def detail(tournament_id):
                                  AND (user_id=%s OR team_id=%s) ORDER BY id DESC LIMIT 1""",
             (tournament_id, g.user["id"], team["id"] if team else None),
         )
-        can_represent = tournament["registration_type"] == "solo" or bool(
-            team and team["member_role"] == "captain" and team["game_id"] == tournament["game_id"]
-        )
+        same_game = bool(team and team["game_id"] == tournament["game_id"])
+        if tournament["registration_type"] == "solo":
+            can_represent = not same_game
+        else:
+            can_represent = same_game and team["member_role"] == "captain"
         can_apply = (
             can_represent
             and tournament["status"] == "published"
+            and tournament["approved_count"] < tournament["max_participants"]
             and (not registration or registration["status"] in {"withdrawn", "rejected"})
         )
         if registration:
@@ -128,11 +133,13 @@ def detail(tournament_id):
     return render_template(
         "detail.html",
         tournament=tournament,
+        games=db.all("SELECT id,name FROM games ORDER BY name LIMIT 4"),
         is_owner=is_owner,
         participants=participants,
         registration=registration,
         can_apply=can_apply,
         thread_id=thread and thread["id"],
+        round_dates=round_dates(tournament["start_date"], tournament["end_date"], len(context["rounds"])),
         has_registrations=bool(
             is_owner
             and db.one("SELECT id FROM registrations WHERE tournament_id=%s LIMIT 1", (tournament_id,))

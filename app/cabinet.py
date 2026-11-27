@@ -19,7 +19,7 @@ def tournaments():
                      LEFT JOIN team_members tm ON tm.team_id=r.team_id AND tm.user_id=%s
                      LEFT JOIN chat_threads ct ON ct.tournament_id=t.id AND ct.participant_user_id=%s
                      WHERE (tm.id IS NOT NULL OR r.user_id=%s)
-                     AND t.status NOT IN ('draft','cancelled')
+                     AND t.status<>'draft'
                      AND NOT EXISTS (
                          SELECT 1 FROM registrations newer WHERE newer.tournament_id=r.tournament_id
                          AND (newer.team_id=r.team_id OR newer.user_id=r.user_id) AND newer.id>r.id
@@ -48,7 +48,7 @@ def matches():
                      LEFT JOIN teams opponent_team ON opponent_team.id=opponent.team_id
                      LEFT JOIN users opponent_user ON opponent_user.id=opponent.user_id
                      WHERE (tm.id IS NOT NULL OR mine.user_id=%s)
-                     AND t.status NOT IN ('draft','cancelled')
+                     AND t.status<>'draft'
                      ORDER BY m.scheduled_at IS NULL,m.scheduled_at,m.round_number,m.match_number,m.id""",
         (g.user["id"], g.user["id"]),
     )

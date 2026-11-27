@@ -1,6 +1,7 @@
 """Validate content, remove file metadata and discard uploads on rollback."""
 
 import io
+import re
 from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid4
@@ -8,6 +9,15 @@ from uuid import uuid4
 from flask import current_app
 from PIL import Image, UnidentifiedImageError
 from werkzeug.utils import secure_filename
+
+
+def remove_upload(filename):
+    """Remove only app-owned uploads. Static artwork may also be stored as a banner."""
+    if filename and re.fullmatch(r"[0-9a-f]{32}\.(?:jpg|jpeg|png|webp)", filename):
+        try:
+            (Path(current_app.config["UPLOAD_FOLDER"]) / filename).unlink(missing_ok=True)
+        except OSError:
+            current_app.logger.exception("Unable to remove unused upload %s", filename)
 
 
 @contextmanager
