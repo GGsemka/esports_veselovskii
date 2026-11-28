@@ -3,7 +3,7 @@
 {% set archived = history|default(request.path == '/history') %}
 {% block title %}{{ 'История' if archived else 'Турниры' }}{% endblock %}
 {% block content %}
-<div class="wrap page catalog-page">
+<div class="wrap page">
   {% if not archived %}
     {% set features = [
       ('cs2', ['counter-strike 2', 'cs2'], 'Counter-Strike 2', 'Соберите пятёрку и найдите турнир для своей команды.'),
